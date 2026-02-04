@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { convertImagesToPDF } from '../../../utils/pdf';
 import { downloadFile, generateFilename, validateImageFile } from '../../../utils/file';
+import { useTaskQueue } from '../../../hooks/useTaskQueue';
 import type { ImageToPDFOptions } from '../../../types/pdf.types';
 import type { FileWithPreview } from '../../../types/global.d';
 
@@ -21,6 +22,7 @@ export const useImageToPDF = (): UseImageToPDFResult => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const { createNewTask, completeTask, failTask } = useTaskQueue();
 
   const addFiles = useCallback((newFiles: File[]) => {
     const validFiles: FileWithPreview[] = [];
@@ -80,14 +82,32 @@ export const useImageToPDF = (): UseImageToPDFResult => {
       setProgress(0);
       setError(null);
 
+      let taskId: string | null = null;
+
       try {
+        // Create task
+        taskId = await createNewTask(
+          'jpg-to-pdf',
+          files.map((f) => ({ name: f.name, size: f.size }))
+        );
+
         // Convert images to PDF
         setProgress(50);
         const pdfBytes = await convertImagesToPDF(files, options);
 
-        // Download PDF
+        // Create filename and blob
         setProgress(80);
         const filename = generateFilename('images', 'pdf');
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+        // Complete task
+        await completeTask(taskId, {
+          name: filename,
+          size: blob.size,
+          data: blob,
+        });
+
+        // Download PDF
         downloadFile(pdfBytes, filename);
 
         setProgress(100);
@@ -100,12 +120,18 @@ export const useImageToPDF = (): UseImageToPDFResult => {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to convert images';
         setError(errorMessage);
+        
+        // Fail task
+        if (taskId) {
+          await failTask(taskId, errorMessage);
+        }
+        
         setProgress(0);
       } finally {
         setIsProcessing(false);
       }
     },
-    [files, clearFiles]
+    [files, clearFiles, createNewTask, completeTask, failTask]
   );
 
   return {

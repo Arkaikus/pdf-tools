@@ -1,12 +1,21 @@
 // IndexedDB wrapper for file storage
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import type { StoredFile, LogEntry } from '../../types/storage.types';
+import type { StoredFile, LogEntry, Task, TaskStatus } from '../../types/storage.types';
 
 interface PDFToolsDB extends DBSchema {
   files: {
     key: string;
     value: StoredFile;
     indexes: { 'by-expiry': Date };
+  };
+  tasks: {
+    key: string;
+    value: Task;
+    indexes: { 
+      'by-status': TaskStatus;
+      'by-expiry': Date;
+      'by-created': Date;
+    };
   };
   logs: {
     key: string;
@@ -16,7 +25,7 @@ interface PDFToolsDB extends DBSchema {
 }
 
 const DB_NAME = 'pdf-tools-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented for schema change
 const EXPIRY_HOURS = 24;
 
 let dbInstance: IDBPDatabase<PDFToolsDB> | null = null;
@@ -30,11 +39,19 @@ export const getDB = async (): Promise<IDBPDatabase<PDFToolsDB>> => {
   }
 
   dbInstance = await openDB<PDFToolsDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion) {
       // Create files store
       if (!db.objectStoreNames.contains('files')) {
         const fileStore = db.createObjectStore('files', { keyPath: 'id' });
         fileStore.createIndex('by-expiry', 'expiresAt');
+      }
+
+      // Create tasks store (v2)
+      if (!db.objectStoreNames.contains('tasks')) {
+        const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
+        taskStore.createIndex('by-status', 'status');
+        taskStore.createIndex('by-expiry', 'expiresAt');
+        taskStore.createIndex('by-created', 'createdAt');
       }
 
       // Create logs store
@@ -45,8 +62,9 @@ export const getDB = async (): Promise<IDBPDatabase<PDFToolsDB>> => {
     },
   });
 
-  // Clean up expired files on init
+  // Clean up expired files and tasks on init
   await cleanupExpiredFiles();
+  await cleanupExpiredTasks();
 
   return dbInstance;
 };
@@ -209,4 +227,146 @@ export const clearLogs = async (): Promise<void> => {
   const tx = db.transaction('logs', 'readwrite');
   await tx.store.clear();
   await tx.done;
+};
+
+// ==================== TASK QUEUE OPERATIONS ====================
+
+/**
+ * Generate a random 5-character task ID
+ */
+export const generateTaskId = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let id = '';
+  for (let i = 0; i < 5; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return id;
+};
+
+/**
+ * Create a new task
+ */
+export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'expiresAt'>): Promise<string> => {
+  const db = await getDB();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + EXPIRY_HOURS * 60 * 60 * 1000);
+  
+  // Ensure unique ID
+  let taskId = generateTaskId();
+  let attempts = 0;
+  while (await db.get('tasks', taskId) && attempts < 10) {
+    taskId = generateTaskId();
+    attempts++;
+  }
+
+  const newTask: Task = {
+    ...task,
+    id: taskId,
+    createdAt: now,
+    expiresAt,
+  };
+
+  await db.add('tasks', newTask);
+  return taskId;
+};
+
+/**
+ * Get a task by ID
+ */
+export const getTask = async (id: string): Promise<Task | undefined> => {
+  const db = await getDB();
+  return await db.get('tasks', id);
+};
+
+/**
+ * Get all tasks
+ */
+export const getAllTasks = async (): Promise<Task[]> => {
+  const db = await getDB();
+  const tasks = await db.getAll('tasks');
+  // Sort by created date, newest first
+  return tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+};
+
+/**
+ * Get tasks by status
+ */
+export const getTasksByStatus = async (status: TaskStatus): Promise<Task[]> => {
+  const db = await getDB();
+  const index = db.transaction('tasks').store.index('by-status');
+  return await index.getAll(status);
+};
+
+/**
+ * Update a task
+ */
+export const updateTask = async (id: string, updates: Partial<Task>): Promise<void> => {
+  const db = await getDB();
+  const task = await db.get('tasks', id);
+  if (!task) {
+    throw new Error(`Task ${id} not found`);
+  }
+
+  const updatedTask = { ...task, ...updates };
+  await db.put('tasks', updatedTask);
+};
+
+/**
+ * Delete a task
+ */
+export const deleteTask = async (id: string): Promise<void> => {
+  const db = await getDB();
+  await db.delete('tasks', id);
+};
+
+/**
+ * Delete all tasks
+ */
+export const deleteAllTasks = async (): Promise<void> => {
+  const db = await getDB();
+  const tx = db.transaction('tasks', 'readwrite');
+  await tx.store.clear();
+  await tx.done;
+};
+
+/**
+ * Clean up expired tasks
+ */
+export const cleanupExpiredTasks = async (): Promise<number> => {
+  const db = await getDB();
+  const now = new Date();
+  const tx = db.transaction('tasks', 'readwrite');
+  const index = tx.store.index('by-expiry');
+  
+  let deletedCount = 0;
+  let cursor = await index.openCursor(IDBKeyRange.upperBound(now));
+
+  while (cursor) {
+    await cursor.delete();
+    deletedCount++;
+    cursor = await cursor.continue();
+  }
+
+  await tx.done;
+  return deletedCount;
+};
+
+/**
+ * Get task statistics
+ */
+export const getTaskStats = async (): Promise<{
+  total: number;
+  processing: number;
+  completed: number;
+  failed: number;
+}> => {
+  const db = await getDB();
+  const allTasks = await db.getAll('tasks');
+
+  return {
+    total: allTasks.length,
+    processing: allTasks.filter((t) => t.status === 'processing').length,
+    completed: allTasks.filter((t) => t.status === 'completed').length,
+    failed: allTasks.filter((t) => t.status === 'failed').length,
+  };
 };

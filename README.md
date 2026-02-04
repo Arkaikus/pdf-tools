@@ -4,16 +4,34 @@ A privacy-focused, frontend-only PDF manipulation tool built with React and Bun.
 
 ## ✨ Features
 
-### Ready to Use ✅
+### Core Features ✅
+
+**Task Queue System**
+- Track all PDF processing tasks
+- 5-character unique task IDs
+- Download results multiple times
+- 24-hour result persistence
+- Visual status tracking
+- Error debugging
+- Task statistics dashboard
+
+### PDF Tools ✅
 - **JPG to PDF** - Convert images to PDF with customizable settings
   - Multiple images support
+  - Drag & drop reordering
   - Page size selection (A4, Letter, Legal)
   - Orientation control (Portrait/Landscape)
   - Adjustable margins
   - Fit to page & aspect ratio options
 
-### Coming Soon 🔜
 - **Merge PDF** - Combine multiple PDFs into one
+  - Upload multiple PDF files
+  - Drag & drop to reorder
+  - Select specific page ranges per file
+  - Visual page count display
+  - Automatic merge and download
+
+### Coming Soon 🔜
 - **Organize PDF** - Reorder, rotate, and delete pages
 - **Split PDF** - Extract pages or split into multiple files
 - **Compress PDF** - Reduce file size

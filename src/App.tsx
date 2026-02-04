@@ -4,8 +4,9 @@ import './index.css';
 import { MainLayout } from './layouts';
 import { ToastProvider } from './contexts/ToastContext';
 import { ToastContainer } from './components/common/Toast';
-import { Home } from './pages';
+import { Home, TaskQueue } from './pages';
 import { JpgToPdf } from './features/jpg-to-pdf';
+import { MergePdf } from './features/merge-pdf';
 import { initializeTheme } from './utils/storage';
 
 export function App() {
@@ -21,6 +22,8 @@ export function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/jpg-to-pdf" element={<JpgToPdf />} />
+            <Route path="/merge-pdf" element={<MergePdf />} />
+            <Route path="/tasks" element={<TaskQueue />} />
           </Routes>
         </MainLayout>
         <ToastContainer />

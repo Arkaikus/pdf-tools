@@ -29,8 +29,8 @@ export const Home: FC = () => {
       title: 'Merge PDF',
       description: 'Combine multiple PDF files into a single document',
       href: '/merge-pdf',
-      badge: 'Coming Soon',
-      disabled: true,
+      badge: 'Ready',
+      disabled: false,
       icon: <FaFileAlt className="w-6 h-6 text-primary-600" />,
     },
     {

@@ -6,6 +6,45 @@ All notable changes to this project will be documented in this file.
 
 ### Added - 2026-02-04
 
+#### Task Queue System
+- **Complete Task Management** with IndexedDB persistence
+  - Auto-generated 5-character task IDs (e.g., "A3X9K")
+  - Task status tracking: processing, completed, failed
+  - Store input/output files as blobs in IndexedDB
+  - 24-hour auto-cleanup
+  - Task queue icon in header with badge
+  - Dedicated task queue page at `/tasks`
+  - Statistics dashboard (total, processing, completed, failed)
+  - Download results multiple times
+  - Clear individual or all tasks
+  - Error tracking and display
+
+**Technical Implementation:**
+- Extended IndexedDB schema with tasks store
+- `useTaskQueue` hook for state management
+- Integrated with JPG to PDF and Merge PDF tools
+- Task statistics and filtering
+- Blob storage for output files
+
+#### Merge PDF Feature (Phase 3.2)
+- **Complete PDF Merging Tool** - Combine multiple PDFs into one
+  - Upload multiple PDF files with drag & drop
+  - Reorder files by dragging (merge order)
+  - Select specific page ranges for each PDF
+  - Page range syntax: "all", "1-3", "1,3,5", "1-3,5,7-10"
+  - Real-time page count display
+  - Progress indicator during merge
+  - Automatic download of merged PDF
+
+**Technical Implementation:**
+- `pdfMerger.ts` - PDF merging utilities with page range parser
+- `usePDFMerger` hook - State management for merge operations
+- `MergePdf.tsx` - Main component with sticky sidebar
+- `PDFFileItem.tsx` - Individual PDF file display with page range input
+- Full validation and error handling
+
+### Added - 2026-02-04 (Earlier)
+
 #### Drag and Drop File Reordering
 - Added drag and drop functionality to reorder uploaded images in JPG to PDF tool
 - Visual feedback during drag (opacity change, border highlight)
