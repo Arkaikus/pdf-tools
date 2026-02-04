@@ -1,0 +1,8 @@
+/* Tailwind CSS directives */
+@import "tailwindcss";
+
+@layer utilities {
+  html {
+    scroll-behavior: smooth;
+  }
+}

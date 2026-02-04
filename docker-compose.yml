@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  pdf-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdf-tools
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      # Mount nginx logs for debugging
+      - ./logs:/var/log/nginx
+    networks:
+      - pdf-tools-network
+    labels:
+      - "com.pdf-tools.description=Frontend-only PDF manipulation tools"
+      - "com.pdf-tools.version=1.0.0"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Development service
+  pdf-tools-dev:
+    image: oven/bun:1.1-alpine
+    container_name: pdf-tools-dev
+    working_dir: /app
+    command: bun run dev
+    ports:
+      - "3001:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    networks:
+      - pdf-tools-network
+    profiles:
+      - dev
+
+networks:
+  pdf-tools-network:
+    driver: bridge
+    name: pdf-tools-network
+
+volumes:
+  logs:
+    driver: local
