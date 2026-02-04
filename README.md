@@ -4,17 +4,22 @@ A privacy-focused, frontend-only PDF manipulation tool built with React and Bun.
 
 ## ✨ Features
 
-### Core Features (MVP)
-- **JPG to PDF** - Convert images to PDF documents
+### Ready to Use ✅
+- **JPG to PDF** - Convert images to PDF with customizable settings
+  - Multiple images support
+  - Page size selection (A4, Letter, Legal)
+  - Orientation control (Portrait/Landscape)
+  - Adjustable margins
+  - Fit to page & aspect ratio options
+
+### Coming Soon 🔜
 - **Merge PDF** - Combine multiple PDFs into one
 - **Organize PDF** - Reorder, rotate, and delete pages
-
-### Coming Soon
-- Split PDF
-- Compress PDF
-- PDF to JPG
-- Add Watermark
-- Rotate PDF
+- **Split PDF** - Extract pages or split into multiple files
+- **Compress PDF** - Reduce file size
+- **PDF to JPG** - Convert PDF pages to images
+- **Add Watermark** - Text or image watermarks
+- **Rotate PDF** - Rotate pages in bulk
 
 ## 🛡️ Privacy First
 
@@ -25,6 +30,22 @@ A privacy-focused, frontend-only PDF manipulation tool built with React and Bun.
 - **Open Source** - Full transparency in what we do
 
 ## 🚀 Quick Start
+
+### Local Development
+
+```bash
+# Install dependencies
+bun install
+
+# Install PDF libraries
+bun add pdf-lib pdfjs-dist file-saver idb clsx
+bun add -d @types/file-saver
+
+# Start development server
+bun dev
+
+# Access at http://localhost:3000
+```
 
 ### Using Docker (Recommended)
 
@@ -38,19 +59,10 @@ docker-compose up -d
 # Access at http://localhost:3000
 ```
 
-### Local Development
+### Build for Production
 
 ```bash
-# Install dependencies
-bun install
-
-# Start development server
-bun dev
-
-# Build for production
-bun build
-
-# Run production build
+bun run build
 bun start
 ```
 

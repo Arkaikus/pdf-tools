@@ -1,33 +1,47 @@
-import { APITester } from "./APITester";
-import "./index.css";
+import { useState, useEffect } from 'react';
+import './index.css';
+import { MainLayout } from './layouts';
+import { ToastProvider } from './contexts/ToastContext';
+import { ToastContainer } from './components/common/Toast';
+import { Home } from './pages';
+import { JpgToPdf } from './features/jpg-to-pdf';
+import { initializeTheme } from './utils/storage';
 
-import logo from "./logo.svg";
-import reactLogo from "./react.svg";
+type Route = '/' | '/jpg-to-pdf';
 
 export function App() {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <div className="flex flex-row items-center gap-4 mb-8">
-        <img
-          src={logo}
-          alt="Bun Logo"
-          className="w-20 h-20 animate-spin-slow"
-        />
-        <img
-          src={reactLogo}
-          alt="React Logo"
-          className="w-20 h-20 animate-spin"
-        />
-      </div>
+  const [currentRoute, setCurrentRoute] = useState<Route>('/');
 
-      <h1 className="text-4xl font-bold mb-2 text-gray-900">Bun + React</h1>
-      <p className="text-lg text-gray-600 mb-6">
-        Edit <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">src/App.tsx</code> and save to test HMR
-      </p>
-      <div className="w-full max-w-xl">
-        <APITester />
-      </div>
-    </div>
+  useEffect(() => {
+    // Initialize theme
+    initializeTheme();
+
+    // Simple routing
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1) || '/';
+      setCurrentRoute(hash as Route);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const renderRoute = () => {
+    switch (currentRoute) {
+      case '/jpg-to-pdf':
+        return <JpgToPdf />;
+      default:
+        return <Home />;
+    }
+  };
+
+  return (
+    <ToastProvider>
+      <MainLayout>{renderRoute()}</MainLayout>
+      <ToastContainer />
+    </ToastProvider>
   );
 }
 
