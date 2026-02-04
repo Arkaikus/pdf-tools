@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import { MainLayout } from './layouts';
 import { ToastProvider } from './contexts/ToastContext';
@@ -7,41 +8,24 @@ import { Home } from './pages';
 import { JpgToPdf } from './features/jpg-to-pdf';
 import { initializeTheme } from './utils/storage';
 
-type Route = '/' | '/jpg-to-pdf';
-
 export function App() {
-  const [currentRoute, setCurrentRoute] = useState<Route>('/');
-
   useEffect(() => {
     // Initialize theme
     initializeTheme();
-
-    // Simple routing
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1) || '/';
-      setCurrentRoute(hash as Route);
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange();
-
-    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const renderRoute = () => {
-    switch (currentRoute) {
-      case '/jpg-to-pdf':
-        return <JpgToPdf />;
-      default:
-        return <Home />;
-    }
-  };
-
   return (
-    <ToastProvider>
-      <MainLayout>{renderRoute()}</MainLayout>
-      <ToastContainer />
-    </ToastProvider>
+    <BrowserRouter>
+      <ToastProvider>
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/jpg-to-pdf" element={<JpgToPdf />} />
+          </Routes>
+        </MainLayout>
+        <ToastContainer />
+      </ToastProvider>
+    </BrowserRouter>
   );
 }
 

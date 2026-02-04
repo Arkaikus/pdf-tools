@@ -1,4 +1,5 @@
 import React, { FC, useCallback, DragEvent, ChangeEvent, useRef } from 'react';
+import { FaCloudUploadAlt } from 'react-icons/fa';
 import clsx from 'clsx';
 
 export interface DropzoneProps {
@@ -112,19 +113,7 @@ export const Dropzone: FC<DropzoneProps> = ({
       />
       {children || (
         <div className="p-12 text-center">
-          <svg
-            className="w-16 h-16 mx-auto mb-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
+          <FaCloudUploadAlt className="w-16 h-16 mx-auto mb-4 text-gray-400" />
           <h3 className="text-xl font-semibold mb-2 text-gray-700">
             Drop files here
           </h3>
