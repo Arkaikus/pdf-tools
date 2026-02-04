@@ -1,0 +1,100 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added - 2026-02-04
+
+#### Drag and Drop File Reordering
+- Added drag and drop functionality to reorder uploaded images in JPG to PDF tool
+- Visual feedback during drag (opacity change, border highlight)
+- Grip handle icon to indicate draggable items
+- Helper text "Drag and drop to reorder images"
+
+#### Improved Layout
+- Made right column sticky in JPG to PDF tool for better UX
+- Moved "Convert to PDF" button to sticky sidebar
+- Button stays visible while scrolling through long file lists
+- Settings and info panel remain accessible during scrolling
+
+#### React Router & Icons
+- Replaced hash-based routing with `react-router-dom`
+- Clean URLs (e.g., `/jpg-to-pdf` instead of `/#/jpg-to-pdf`)
+- Replaced all inline SVGs with `react-icons/fa` (Font Awesome)
+- Consistent icon library throughout the app
+
+### Technical Details
+
+**File Changes:**
+- `src/components/pdf/FileList/FileList.tsx` - Added drag and drop reordering
+- `src/features/jpg-to-pdf/hooks/useImageToPDF.ts` - Added `reorderFiles` function
+- `src/features/jpg-to-pdf/JpgToPdf.tsx` - Restructured layout with sticky sidebar
+- `src/App.tsx` - Implemented React Router
+- Multiple component files - Updated to use react-icons
+
+**New Features:**
+- `onReorder` prop in FileList component
+- `reorderFiles` function in useImageToPDF hook
+- Sticky positioning for settings sidebar
+- Drag state management with visual feedback
+
+**Dependencies Added:**
+- `react-router-dom` v6.26.0
+- `react-icons` v5.3.0
+
+### User Experience Improvements
+
+1. **File Ordering**: Users can now arrange images in the exact order they want for the PDF
+2. **Sticky Controls**: Convert button and settings remain visible during scrolling
+3. **Better Navigation**: Clean URLs and proper routing
+4. **Consistent Icons**: Professional icon set throughout
+
+### Breaking Changes
+
+None - All changes are backwards compatible
+
+## [0.1.0] - 2026-02-04
+
+### Added
+
+#### Initial MVP Release
+- JPG to PDF converter (fully functional)
+  - Multiple image upload (JPG, PNG, WebP)
+  - Drag and drop file upload
+  - Customizable PDF settings (page size, orientation, margins)
+  - Real-time preview with thumbnails
+  - Progress indicator during conversion
+  - Automatic PDF download
+
+#### Infrastructure
+- Tailwind CSS v4 styling system
+- IndexedDB storage with auto-cleanup
+- LocalStorage for user settings
+- Toast notification system
+- Modal components
+- File upload components
+- Responsive layouts
+
+#### Core Features
+- Home page with tool grid
+- Header and footer navigation
+- Privacy-first architecture
+- Client-side only processing
+- Error handling and validation
+
+#### Documentation
+- Complete README with setup instructions
+- TODO.md with development roadmap
+- ARCHITECTURE.md with technical details
+- Multiple setup and installation guides
+
+---
+
+**Note**: This project follows [Semantic Versioning](https://semver.org/).
+
+## Version Format
+
+- **Major** version for incompatible API changes
+- **Minor** version for backwards-compatible functionality additions
+- **Patch** version for backwards-compatible bug fixes

@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { FaTrash } from 'react-icons/fa';
+import { FC, useState, DragEvent } from 'react';
+import { FaTrash, FaGripVertical } from 'react-icons/fa';
 import clsx from 'clsx';
 import { formatBytes } from '../../../utils/helpers';
 
@@ -22,20 +22,70 @@ export interface FileListProps {
 export const FileList: FC<FileListProps> = ({
   files,
   onRemove,
+  onReorder,
   showPreview = true,
   className,
 }) => {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   if (files.length === 0) {
     return null;
   }
 
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex !== null && draggedIndex !== dropIndex && onReorder) {
+      onReorder(draggedIndex, dropIndex);
+    }
+    
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <div className={clsx('space-y-2', className)}>
-      {files.map((file) => (
+      {files.map((file, index) => (
         <div
           key={file.id}
-          className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-soft hover:shadow-medium transition-shadow"
+          draggable={!!onReorder}
+          onDragStart={(e) => handleDragStart(e, index)}
+          onDragOver={(e) => handleDragOver(e, index)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, index)}
+          onDragEnd={handleDragEnd}
+          className={clsx(
+            'flex items-center gap-4 p-4 bg-white rounded-lg shadow-soft transition-all',
+            onReorder && 'cursor-move hover:shadow-medium',
+            draggedIndex === index && 'opacity-50',
+            dragOverIndex === index && draggedIndex !== index && 'border-2 border-primary-500'
+          )}
         >
+          {onReorder && (
+            <div className="flex-shrink-0 text-gray-400 cursor-move">
+              <FaGripVertical className="w-4 h-4" />
+            </div>
+          )}
           {showPreview && file.preview && (
             <img
               src={file.preview}

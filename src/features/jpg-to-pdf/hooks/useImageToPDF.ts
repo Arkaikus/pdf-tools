@@ -11,6 +11,7 @@ interface UseImageToPDFResult {
   error: string | null;
   addFiles: (newFiles: File[]) => void;
   removeFile: (id: string) => void;
+  reorderFiles: (fromIndex: number, toIndex: number) => void;
   clearFiles: () => void;
   convertToPDF: (options?: ImageToPDFOptions) => Promise<void>;
 }
@@ -47,6 +48,15 @@ export const useImageToPDF = (): UseImageToPDFResult => {
         URL.revokeObjectURL(file.preview);
       }
       return prev.filter((f) => f.id !== id);
+    });
+  }, []);
+
+  const reorderFiles = useCallback((fromIndex: number, toIndex: number) => {
+    setFiles((prev) => {
+      const newFiles = [...prev];
+      const [movedFile] = newFiles.splice(fromIndex, 1);
+      newFiles.splice(toIndex, 0, movedFile);
+      return newFiles;
     });
   }, []);
 
@@ -105,6 +115,7 @@ export const useImageToPDF = (): UseImageToPDFResult => {
     error,
     addFiles,
     removeFile,
+    reorderFiles,
     clearFiles,
     convertToPDF,
   };

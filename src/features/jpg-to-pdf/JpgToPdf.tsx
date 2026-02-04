@@ -16,6 +16,7 @@ export const JpgToPdf: FC = () => {
     error,
     addFiles,
     removeFile,
+    reorderFiles,
     clearFiles,
     convertToPDF,
   } = useImageToPDF();
@@ -102,6 +103,9 @@ export const JpgToPdf: FC = () => {
                   Clear All
                 </Button>
               </div>
+              <p className="text-sm text-gray-600 mb-3">
+                Drag and drop to reorder images
+              </p>
               <FileList
                 files={files.map((f) => ({
                   id: f.id!,
@@ -111,41 +115,42 @@ export const JpgToPdf: FC = () => {
                   preview: f.preview,
                 }))}
                 onRemove={removeFile}
+                onReorder={reorderFiles}
                 showPreview={true}
               />
             </div>
           )}
+        </div>
 
-          {/* Actions */}
-          {files.length > 0 && (
-            <div className="flex gap-4">
+        {/* Right Column - Settings (Sticky) */}
+        <div className="lg:col-span-1">
+          <div className="lg:sticky lg:top-8 space-y-6">
+            <ImageSettings options={options} onChange={setOptions} />
+
+            {/* Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <FaInfoCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">Privacy First</p>
+                  <p>All processing happens in your browser. Your images are never uploaded to any server.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Convert Button */}
+            {files.length > 0 && (
               <Button
                 variant="primary"
                 size="lg"
                 onClick={handleConvert}
                 disabled={isProcessing}
                 isLoading={isProcessing}
-                className="flex-1"
+                className="w-full"
               >
                 Convert to PDF
               </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column - Settings */}
-        <div className="lg:col-span-1">
-          <ImageSettings options={options} onChange={setOptions} />
-
-          {/* Info */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <FaInfoCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Privacy First</p>
-                <p>All processing happens in your browser. Your images are never uploaded to any server.</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
