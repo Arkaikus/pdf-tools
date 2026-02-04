@@ -38,8 +38,8 @@ export const Home: FC = () => {
       title: 'Organize PDF',
       description: 'Reorder, rotate, and delete pages in your PDF',
       href: '/organize-pdf',
-      badge: 'Coming Soon',
-      disabled: true,
+      badge: 'Ready',
+      disabled: false,
       icon: <FaTh className="w-6 h-6 text-primary-600" />,
     },
     {

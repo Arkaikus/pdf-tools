@@ -17,6 +17,9 @@ COPY . .
 # Build the application
 RUN bun run build
 
+# Copy public directory to dist
+RUN mkdir -p dist && cp -r public/* dist/ 2>/dev/null || true
+
 # Stage 2: Production
 FROM nginx:alpine AS production
 

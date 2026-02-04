@@ -25,8 +25,8 @@ export const Button: FC<ButtonProps> = ({
   const variantClasses = {
     primary: 'bg-primary-500 hover:bg-primary-600 text-white focus:ring-primary shadow-sm hover:shadow-md',
     secondary: 'bg-secondary-200 hover:bg-secondary-300 text-secondary-900 focus:ring-secondary',
-    outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-500 focus:ring-primary-500',
-    ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
+    outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white focus:ring-primary-500',
+    ghost: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500',
     danger: 'bg-danger-500 hover:bg-danger-600 text-white focus:ring-danger shadow-sm hover:shadow-md',
   };
 

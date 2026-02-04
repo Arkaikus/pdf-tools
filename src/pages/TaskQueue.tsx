@@ -7,6 +7,7 @@ import {
   FaExclamationCircle,
   FaImage,
   FaFileAlt,
+  FaTh,
   FaInfoCircle
 } from 'react-icons/fa';
 import { useTaskQueue } from '../hooks/useTaskQueue';
@@ -17,7 +18,7 @@ import type { Task } from '../types/storage.types';
 const toolIcons = {
   'jpg-to-pdf': <FaImage className="w-5 h-5 text-primary-600" />,
   'merge-pdf': <FaFileAlt className="w-5 h-5 text-primary-600" />,
-  'organize-pdf': <FaFileAlt className="w-5 h-5 text-primary-600" />,
+  'organize-pdf': <FaTh className="w-5 h-5 text-primary-600" />,
 };
 
 const toolNames = {

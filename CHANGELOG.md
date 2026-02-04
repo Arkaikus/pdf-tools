@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed - 2026-02-04
+
+#### Documentation Updates
+- Updated `README.md` with documentation table of contents for `docs/` directory
+- Added organized categories: Getting Started, Architecture, Features, Development
+- Added quick summaries for each document
+- Updated roadmap section to reflect Phase 1-3 completion
+
+### Fixed - 2026-02-04
+
+#### PDF.js Worker Error Resolution
+- **Fixed Critical Bug** - PDF.js worker failing to load from CDN
+  - Error: "Failed to fetch dynamically imported module" when uploading PDFs
+  - **Root Cause**: CORS and network issues with CDN-hosted worker
+  - **Solution**: Local worker file serving
+  
+**Changes Made:**
+- Created `public/` directory for static assets
+- Copied `pdf.worker.min.mjs` from `pdfjs-dist` package to `public/`
+- Updated `pdfRenderer.ts` to use local worker: `workerSrc = '/pdf.worker.min.mjs'`
+- Added route in `src/index.ts` to serve worker file in development
+- Created automated setup script: `scripts/setup-pdfjs-worker.sh`
+- Added `postinstall` script to automatically copy worker after `bun install`
+- Updated build script to copy `public/` files to `dist/`
+- Updated Dockerfile to include public assets in production image
+- Created `TROUBLESHOOTING.md` with comprehensive debugging guide
+
+**Impact:**
+- ✅ Organize PDF feature now works reliably
+- ✅ No external CDN dependencies
+- ✅ Works offline
+- ✅ Faster load times
+- ✅ Better security (no external requests)
+
 ### Added - 2026-02-04
 
 #### Task Queue System
@@ -25,6 +59,28 @@ All notable changes to this project will be documented in this file.
 - Integrated with JPG to PDF and Merge PDF tools
 - Task statistics and filtering
 - Blob storage for output files
+
+#### Organize PDF Feature (Phase 3.3)
+- **Complete PDF Organization Tool** - Manipulate PDF pages visually
+  - Upload single PDF with thumbnail generation
+  - Drag & drop to reorder pages
+  - Rotate pages (±90° with visual preview)
+  - Delete pages (soft delete with restore)
+  - Visual page grid (responsive 2-4 columns)
+  - Grip handle for dragging
+  - Page number badges
+  - Deleted pages section
+  - File info panel (total/active/deleted counts)
+  - Save organized PDF with all operations applied
+  - Task queue integration
+
+**Technical Implementation:**
+- `pdfOrganizer.ts` - Page manipulation utilities
+- `pdfRenderer.ts` - PDF.js thumbnail generation
+- `useOrganizePDF` hook - State and operations management
+- `PageThumbnail` component - Individual page display
+- `OrganizePdf` component - Main interface with sticky sidebar
+- Full drag & drop with visual feedback
 
 #### Merge PDF Feature (Phase 3.2)
 - **Complete PDF Merging Tool** - Combine multiple PDFs into one

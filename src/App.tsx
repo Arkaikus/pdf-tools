@@ -7,6 +7,7 @@ import { ToastContainer } from './components/common/Toast';
 import { Home, TaskQueue } from './pages';
 import { JpgToPdf } from './features/jpg-to-pdf';
 import { MergePdf } from './features/merge-pdf';
+import { OrganizePdf } from './features/organize-pdf';
 import { initializeTheme } from './utils/storage';
 
 export function App() {
@@ -23,6 +24,7 @@ export function App() {
             <Route path="/" element={<Home />} />
             <Route path="/jpg-to-pdf" element={<JpgToPdf />} />
             <Route path="/merge-pdf" element={<MergePdf />} />
+            <Route path="/organize-pdf" element={<OrganizePdf />} />
             <Route path="/tasks" element={<TaskQueue />} />
           </Routes>
         </MainLayout>

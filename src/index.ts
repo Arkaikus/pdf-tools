@@ -4,6 +4,16 @@ import index from "./index.html";
 const server = serve({
   port: 3333,
   routes: {
+    // Serve PDF.js worker from public directory
+    "/pdf.worker.min.mjs": async () => {
+      const file = Bun.file("./public/pdf.worker.min.mjs");
+      return new Response(file, {
+        headers: {
+          "Content-Type": "application/javascript",
+        },
+      });
+    },
+
     // Serve index.html for all unmatched routes.
     "/*": index,
 
