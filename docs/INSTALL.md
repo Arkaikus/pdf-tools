@@ -1,217 +1,334 @@
 # Installation Guide
 
+Complete guide to installing and running PDF Tools locally or with Docker.
+
+---
+
 ## Quick Start
 
 ```bash
-# 1. Navigate to project directory
+# Navigate to project directory
 cd /home/arkaikus/Docker/pdf-tools
 
-# 2. Run setup script (recommended)
-./setup.sh
+# Install dependencies
+bun install
 
-# 3. Start development
+# Setup PDF.js worker (REQUIRED)
+bun run setup:worker
+
+# Start development server
 bun dev
+
+# Access at http://localhost:3333
 ```
 
-## Manual Installation
+---
 
-### Prerequisites
+## Prerequisites
 
-- **Bun** v1.1 or higher ([Install Bun](https://bun.sh))
-- **Docker** (optional, for containerized deployment)
-- **Git** (optional, for version control)
+### Required
+- **Bun** v1.1 or higher - [Install Bun](https://bun.sh)
+  ```bash
+  curl -fsSL https://bun.sh/install | bash
+  ```
 
-### Step-by-Step
+### Optional
+- **Docker** & **Docker Compose** - For containerized deployment
+- **Git** - For version control
+- **Make** - For convenience commands
 
-#### 1. Install Dependencies
+---
+
+## Local Development Setup
+
+### 1. Install Dependencies
 
 ```bash
 bun install
 ```
 
-This will install:
+This installs all required dependencies:
 
 **Production Dependencies:**
-- `react` v19 - UI library
-- `react-dom` v19 - React DOM renderer
+- `react` ^19 - UI framework
+- `react-dom` ^19 - React DOM renderer
+- `react-router-dom` ^6.26.0 - Client-side routing
+- `react-icons` ^5.3.0 - Icon library (Font Awesome)
+- `pdf-lib` ^1.17.1 - PDF creation and manipulation
+- `pdfjs-dist` ^4.0.379 - PDF rendering and thumbnails
+- `file-saver` ^2.0.5 - Client-side file downloads
+- `idb` ^8.0.0 - IndexedDB wrapper
+- `clsx` ^2.1.0 - CSS class utility
 
 **Development Dependencies:**
-- `@types/react` - React TypeScript types
-- `@types/react-dom` - React DOM TypeScript types
-- `@types/bun` - Bun TypeScript types
-- `bun-plugin-tailwind` - Tailwind CSS Bun plugin
-- `tailwindcss` v4 - Utility-first CSS framework
-- `postcss` - CSS transformation tool
-- `autoprefixer` - Auto-add vendor prefixes
-- `@tailwindcss/postcss` - Tailwind v4 PostCSS plugin
+- `@types/react` ^19 - React TypeScript types
+- `@types/react-dom` ^19 - React DOM TypeScript types
+- `@types/bun` latest - Bun TypeScript types
+- `@types/file-saver` ^2.0.7 - File-saver types
+- `bun-plugin-tailwind` latest - Tailwind CSS Bun plugin
+- `tailwindcss` latest - Tailwind CSS v4
+- `postcss` latest - CSS transformation
+- `autoprefixer` latest - Vendor prefix automation
+- `@tailwindcss/postcss` latest - Tailwind v4 PostCSS plugin
 
-#### 2. Setup Environment
+### 2. Setup PDF.js Worker (Required)
+
+After installing dependencies, you MUST run the worker setup script:
 
 ```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit if needed (optional)
-nano .env
+bun run setup:worker
 ```
 
-#### 3. Verify Installation
+This copies `pdf.worker.min.mjs` from `node_modules/pdfjs-dist/build/` to `public/` directory.
+
+**Note:** This is NOT automatic - you must run it manually after `bun install`.
+
+### 3. Start Development Server
 
 ```bash
-# Check Bun version
-bun --version
-
-# Check if dependencies installed
-ls node_modules/
-```
-
-## Running the Application
-
-### Development Mode
-
-```bash
-# Start dev server with hot reload
 bun dev
-
-# Access at http://localhost:3000
 ```
 
-### Production Build
+- Server runs at: **http://localhost:3333**
+- Hot-reload enabled
+- Console logs from browser echo to terminal
+
+### 4. Verify Installation
+
+Open browser to `http://localhost:3333`
+
+You should see:
+- PDF Tools homepage
+- Three tool cards: JPG to PDF, Merge PDF, Organize PDF
+- Task queue icon in header
+
+---
+
+## Production Build
+
+### Build for Production
 
 ```bash
-# Build for production
 bun run build
+```
 
-# Run production build
+This:
+1. Runs PDF.js worker setup
+2. Bundles the application
+3. Copies public assets to dist/
+4. Minifies code
+5. Generates source maps
+
+Output directory: `dist/`
+
+### Run Production Build
+
+```bash
 bun start
 ```
 
-### Using Make Commands
+Starts production server at `http://localhost:3333`
+
+---
+
+## Docker Deployment
+
+### Using Docker Compose (Recommended)
+
+#### Build and Start
 
 ```bash
-# Development
-make install    # Install dependencies
-make dev        # Start dev server
-make build      # Build for production
-
-# Docker
-make docker-build    # Build Docker image
-make docker-up       # Start containers
-make docker-down     # Stop containers
-make docker-logs     # View logs
-
-# Quick start with Docker
-make quick-start
-```
-
-## Docker Installation
-
-### Build and Run
-
-```bash
-# Build Docker image
-docker-compose build
-
-# Start containers
+# Build image and start container
 docker-compose up -d
 
 # View logs
 docker-compose logs -f pdf-tools
 
-# Stop containers
+# Stop container
 docker-compose down
 ```
 
-### Access the Application
+Access at: **http://localhost:3000**
 
-- **Production**: http://localhost:3000
-- **Development** (with profile): http://localhost:3001
-
-### Docker Development Mode
+#### Using Make Commands
 
 ```bash
-# Start with dev profile
-docker-compose --profile dev up pdf-tools-dev
+# Build Docker image
+make docker-build
+
+# Start containers
+make docker-up
+
+# Stop containers
+make docker-down
+
+# View logs
+make docker-logs
+
+# Complete rebuild
+make docker-rebuild
 ```
 
-## Verifying Installation
+### Manual Docker Build
 
-### Check Dev Server
+```bash
+# Build image
+docker build -t pdf-tools .
 
-1. Start the dev server:
-   ```bash
-   bun dev
-   ```
+# Run container
+docker run -d -p 3000:80 --name pdf-tools pdf-tools
 
-2. Open browser to `http://localhost:3000`
+# View logs
+docker logs -f pdf-tools
 
-3. You should see the PDF Tools welcome page
-
-### Check Tailwind CSS
-
-Create a test component:
-
-```tsx
-// src/Test.tsx
-export const Test = () => (
-  <div className="bg-primary-500 text-white p-4 rounded-lg">
-    Tailwind is working!
-  </div>
-);
+# Stop container
+docker stop pdf-tools
+docker rm pdf-tools
 ```
 
-If you see a blue background with white text, Tailwind is configured correctly.
+---
+
+## Make Commands
+
+The project includes a Makefile with convenient commands:
+
+### Development
+```bash
+make install       # Install dependencies
+make dev          # Start dev server
+make build        # Build for production
+make start        # Run production server
+make clean        # Clean build artifacts
+```
+
+### Docker
+```bash
+make docker-build    # Build Docker image
+make docker-up       # Start containers
+make docker-down     # Stop containers
+make docker-logs     # View container logs
+make docker-shell    # Shell into container
+make docker-rebuild  # Rebuild from scratch
+```
+
+### Maintenance
+```bash
+make clean           # Remove dist/
+make clean-all       # Remove dist/ and node_modules/
+make help           # Show all commands
+```
+
+---
+
+## Project Structure
+
+After installation, your project structure:
+
+```
+pdf-tools/
+├── public/
+│   └── pdf.worker.min.mjs    # PDF.js worker (auto-generated)
+├── src/
+│   ├── components/           # UI components
+│   ├── features/             # Feature modules
+│   ├── hooks/               # Custom React hooks
+│   ├── pages/               # Page components
+│   ├── utils/               # Utility functions
+│   ├── App.tsx              # Main app component
+│   ├── index.tsx            # React entry point
+│   └── index.ts             # Bun server
+├── scripts/
+│   └── setup-pdfjs-worker.sh  # Worker setup script
+├── docs/                     # Documentation
+├── dist/                     # Build output (generated)
+├── node_modules/             # Dependencies (generated)
+├── package.json
+├── bunfig.toml
+├── tsconfig.json
+├── tailwind.config.js
+├── postcss.config.js
+├── Dockerfile
+├── docker-compose.yml
+├── nginx.conf
+└── Makefile
+```
+
+---
 
 ## Troubleshooting
 
-### Bun not found
+### Bun Not Found
 
 ```bash
 # Install Bun
 curl -fsSL https://bun.sh/install | bash
 
-# Add to PATH (if needed)
+# Reload shell or add to PATH
 export PATH="$HOME/.bun/bin:$PATH"
 
-# Verify
+# Verify installation
 bun --version
 ```
 
-### Dependencies not installing
+### Dependencies Won't Install
 
 ```bash
 # Clear cache and reinstall
-rm -rf node_modules bun.lock
+rm -rf node_modules bun.lockb
 bun install
+
+# If still failing, check Bun version
+bun --version  # Should be 1.1+
 ```
 
-### Tailwind styles not working
+### PDF.js Worker Error
+
+If you see: `Failed to fetch dynamically imported module: pdf.worker.min.js`
 
 ```bash
-# 1. Check bunfig.toml has plugin
-cat bunfig.toml | grep tailwind
+# Run worker setup manually
+bun run setup:worker
 
-# 2. Check index.css has directives
-head -n 5 src/index.css
+# Verify file exists
+ls -la public/pdf.worker.min.mjs
 
-# 3. Restart dev server
+# Restart dev server
 bun dev
 ```
 
-### Port already in use
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed fix.
+
+### Port Already in Use
 
 ```bash
-# Find process using port 3000
-lsof -i :3000
+# Find process using port 3333
+lsof -i :3333
 
-# Kill process
+# Kill the process
 kill -9 <PID>
 
 # Or use different port
-PORT=3001 bun dev
+PORT=3334 bun dev
 ```
 
-### Docker build fails
+### Tailwind Styles Not Working
+
+```bash
+# Check bunfig.toml has plugin
+cat bunfig.toml | grep tailwind
+
+# Should show: plugins = ["bun-plugin-tailwind"]
+
+# Check index.css has directives
+head src/index.css
+
+# Should include: @import "tailwindcss";
+
+# Restart dev server
+bun dev
+```
+
+### Docker Build Fails
 
 ```bash
 # Clean Docker cache
@@ -219,63 +336,57 @@ docker system prune -a
 
 # Rebuild without cache
 docker-compose build --no-cache
+
+# Check Docker version
+docker --version
+docker-compose --version
 ```
 
-### Permission denied on setup.sh
+### Hot Reload Not Working
 
 ```bash
-# Make executable
-chmod +x setup.sh
+# Restart with clean cache
+rm -rf .bun
+bun dev
 
-# Run
-./setup.sh
+# If still not working, try hard refresh in browser
+# Windows/Linux: Ctrl + Shift + R
+# Mac: Cmd + Shift + R
 ```
 
-## Adding PDF Libraries
+---
 
-For PDF manipulation features, install:
+## Environment Variables
+
+The project includes `.env.example` for reference. No environment variables are required for basic operation.
 
 ```bash
-bun add pdf-lib pdfjs-dist file-saver idb
+# Optional: Copy example
+cp .env.example .env
+
+# Edit if needed
+nano .env
 ```
 
-**Libraries:**
-- `pdf-lib` - Create and modify PDFs
-- `pdfjs-dist` - Render and preview PDFs
-- `file-saver` - Download files client-side
-- `idb` - IndexedDB wrapper
+Currently, no environment variables are used in the application.
 
-## IDE Setup
+---
 
-### VS Code
+## IDE Setup (VS Code)
 
-Recommended extensions:
+### Recommended Extensions
+
+Create `.vscode/extensions.json`:
 
 ```json
 {
   "recommendations": [
+    "oven.bun-vscode",
     "bradlc.vscode-tailwindcss",
     "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
-    "oven.bun-vscode"
+    "esbenp.prettier-vscode"
   ]
 }
-```
-
-Create `.vscode/extensions.json`:
-
-```bash
-mkdir -p .vscode
-cat > .vscode/extensions.json << 'EOF'
-{
-  "recommendations": [
-    "bradlc.vscode-tailwindcss",
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
-    "oven.bun-vscode"
-  ]
-}
-EOF
 ```
 
 ### Settings
@@ -290,36 +401,47 @@ Create `.vscode/settings.json`:
     "source.fixAll.eslint": true
   },
   "tailwindCSS.experimental.classRegex": [
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
-    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ]
 }
 ```
 
+---
+
+## Verification Checklist
+
+After installation, verify everything works:
+
+- [ ] `bun --version` shows 1.1+
+- [ ] `bun dev` starts without errors
+- [ ] Browser opens to `http://localhost:3333`
+- [ ] Homepage loads with 3 tool cards
+- [ ] Task queue icon visible in header
+- [ ] `ls public/pdf.worker.min.mjs` shows file exists
+- [ ] No console errors in browser DevTools
+
+---
+
 ## Next Steps
 
-1. **Read Documentation**
-   - [README.md](README.md) - Project overview
-   - [TODO.md](TODO.md) - Development roadmap
-   - [ARCHITECTURE.md](ARCHITECTURE.md) - Technical details
-   - [TAILWIND.md](TAILWIND.md) - Tailwind CSS guide
+After successful installation:
 
-2. **Start Development**
-   - Explore `src/` directory
-   - Check existing components
-   - Read [CONTRIBUTING.md](CONTRIBUTING.md)
+1. **Read the User Guide**: [docs/USER_GUIDE.md](USER_GUIDE.md)
+2. **Explore Features**: Try JPG to PDF, Merge PDF, Organize PDF
+3. **Check Architecture**: [docs/ARCHITECTURE.md](ARCHITECTURE.md)
+4. **Review Roadmap**: [docs/TODO.md](TODO.md)
 
-3. **Build Features**
-   - Follow roadmap in [TODO.md](TODO.md)
-   - Implement JPG to PDF first
-   - Test in multiple browsers
+---
 
 ## Getting Help
 
-- Check [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
-- Review [ARCHITECTURE.md](ARCHITECTURE.md) for technical details
-- See [TODO.md](TODO.md) for feature roadmap
-- Read [TAILWIND.md](TAILWIND.md) for styling guide
+If you encounter issues:
+
+1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+2. Review browser console for errors (F12)
+3. Check terminal output for server errors
+4. Verify all prerequisites are met
+5. Try clean install: `rm -rf node_modules bun.lockb && bun install && bun run setup:worker`
 
 ---
 
@@ -327,5 +449,10 @@ Create `.vscode/settings.json`:
 
 Start developing:
 ```bash
+# Make sure you ran setup:worker first!
 bun dev
 ```
+
+Access the app at: **http://localhost:3333**
+
+**Important:** If you see PDF.js worker errors, run `bun run setup:worker` first!

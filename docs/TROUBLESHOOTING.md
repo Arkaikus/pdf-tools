@@ -1,113 +1,148 @@
-# 🔧 Troubleshooting Guide
+# Troubleshooting Guide
 
-## Common Issues and Solutions
-
-### PDF.js Worker Error
-
-**Error Message:**
-```
-Uncaught TypeError: Failed to fetch dynamically imported module: 
-http://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.js
-```
-
-**Symptoms:**
-- Error occurs when uploading PDF files to the Organize PDF tool
-- Thumbnails fail to generate
-- PDF operations hang or fail
-
-**Root Cause:**
-The PDF.js library requires a web worker to process PDF files. Originally, we tried to load this from a CDN, but this can fail due to:
-- CORS (Cross-Origin Resource Sharing) restrictions
-- Network connectivity issues
-- Content Security Policy (CSP) restrictions
-- Missing internet connection
-
-**Solution:**
-We now serve the PDF.js worker file locally from the application.
-
-**Fix Applied:**
-
-1. **Worker File Location:**
-   - The worker file is copied to: `public/pdf.worker.min.mjs`
-   - It's automatically served at: `http://localhost:3333/pdf.worker.min.mjs`
-
-2. **Configuration Updated:**
-   ```typescript
-   // src/utils/pdf/pdfRenderer.ts
-   pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-   ```
-
-3. **Development Server:**
-   ```typescript
-   // src/index.ts - Added route to serve worker file
-   "/pdf.worker.min.mjs": async () => {
-     const file = Bun.file("./public/pdf.worker.min.mjs");
-     return new Response(file, {
-       headers: {
-         "Content-Type": "application/javascript",
-       },
-     });
-   }
-   ```
-
-4. **Automated Setup:**
-   - Added postinstall script that runs automatically after `bun install`
-   - Copies worker from `node_modules/pdfjs-dist/build/` to `public/`
-   - Manual setup: `bun run setup:worker`
-
-5. **Production Build:**
-   - Updated build script to copy `public/` directory to `dist/`
-   - Dockerfile includes public files in the nginx image
-
-**How to Apply the Fix:**
-
-```bash
-# 1. Run the setup script (copies worker file)
-bun run setup:worker
-
-# 2. Restart the development server
-# Press Ctrl+C to stop the current server, then:
-bun dev
-
-# 3. Test the Organize PDF feature
-# Navigate to http://localhost:3333/organize-pdf
-# Upload a PDF file - it should now work without errors
-```
-
-**Verification:**
-
-1. Check that the worker file exists:
-   ```bash
-   ls -lh public/pdf.worker.min.mjs
-   # Should show: -rwxrwxrwx 1 user group 1.4M date pdf.worker.min.mjs
-   ```
-
-2. Check that the worker is being served:
-   ```bash
-   curl -I http://localhost:3333/pdf.worker.min.mjs
-   # Should return: HTTP/1.1 200 OK
-   ```
-
-3. Check browser console:
-   - Open DevTools (F12)
-   - Go to Network tab
-   - Upload a PDF to Organize PDF tool
-   - Look for `pdf.worker.min.mjs` - should be 200 OK
+Common issues and solutions for PDF Tools.
 
 ---
 
-## Other Common Issues
+## Table of Contents
 
-### Port Already in Use
+1. [Installation Issues](#installation-issues)
+2. [PDF.js Worker Errors](#pdfjs-worker-errors)
+3. [Runtime Errors](#runtime-errors)
+4. [Docker Issues](#docker-issues)
+5. [Browser Issues](#browser-issues)
+6. [Performance Issues](#performance-issues)
 
-**Error:**
-```
-error: listen EADDRINUSE: address already in use :::3333
-```
+---
+
+## Installation Issues
+
+### Bun Not Found
+
+**Error:** `bun: command not found`
 
 **Solution:**
 ```bash
-# Find the process using port 3333
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+
+# Reload shell or add to PATH
+export PATH="$HOME/.bun/bin:$PATH"
+
+# Verify
+bun --version
+```
+
+### Dependencies Won't Install
+
+**Error:** Package installation fails
+
+**Solutions:**
+```bash
+# Clear cache and retry
+rm -rf node_modules bun.lockb
+bun install
+
+# Check Bun version (needs 1.1+)
+bun --version
+
+# Update Bun if needed
+curl -fsSL https://bun.sh/install | bash
+```
+
+### Permission Denied
+
+**Error:** `EACCES: permission denied`
+
+**Solutions:**
+```bash
+# Fix ownership
+sudo chown -R $USER:$USER /home/arkaikus/Docker/pdf-tools
+
+# Or run with sudo (not recommended)
+sudo bun install
+```
+
+---
+
+## PDF.js Worker Errors
+
+### Failed to Fetch Worker Module
+
+**Error:**
+```
+Uncaught TypeError: Failed to fetch dynamically imported module: 
+http://cdnjs.cloudflare.com/ajax/libs/pdf.js/X.X.X/pdf.worker.min.js
+```
+
+**Root Cause:** PDF.js worker not set up correctly
+
+**Solution:**
+```bash
+# Run worker setup script
+bun run setup:worker
+
+# Verify file exists
+ls -la public/pdf.worker.min.mjs
+
+# Should show: -rwxrwxrwx ... pdf.worker.min.mjs (1.4M)
+
+# Restart dev server
+bun dev
+```
+
+### Worker File Not Found
+
+**Error:** `GET http://localhost:3333/pdf.worker.min.mjs 404 (Not Found)`
+
+**Solution:**
+```bash
+# Worker setup script should run on install
+# But you can run it manually:
+bun run setup:worker
+
+# Check if public directory exists
+ls -la public/
+
+# Restart server
+bun dev
+```
+
+### Worker Still Fails After Setup
+
+**Possible Causes:**
+1. Browser cache issue
+2. Server not serving the file
+3. CORS issue (shouldn't happen with local file)
+
+**Solutions:**
+```bash
+# 1. Hard refresh browser
+# Chrome/Firefox: Ctrl+Shift+R
+# Safari: Cmd+Shift+R
+
+# 2. Check server is serving the file
+curl -I http://localhost:3333/pdf.worker.min.mjs
+# Should return: HTTP/1.1 200 OK
+
+# 3. Check file permissions
+chmod 644 public/pdf.worker.min.mjs
+
+# 4. Clear browser cache
+# DevTools → Network → Disable cache (checkbox)
+```
+
+---
+
+## Runtime Errors
+
+### Port Already in Use
+
+**Error:** `error: listen EADDRINUSE: address already in use :::3333`
+
+**Solution:**
+```bash
+# Find process using port 3333
 lsof -i :3333
 
 # Kill the process
@@ -117,287 +152,386 @@ kill -9 <PID>
 PORT=3334 bun dev
 ```
 
----
+### Module Not Found
 
-### Dependencies Not Installing
-
-**Error:**
-```
-error: package not found
-```
+**Error:** `Cannot find module 'react-router-dom'`
 
 **Solution:**
 ```bash
-# Clear Bun cache
-rm -rf node_modules
-rm -f bun.lockb
-
 # Reinstall dependencies
 bun install
 
-# The postinstall script will automatically run
+# If still failing, check package.json
+cat package.json | grep react-router-dom
+
+# Manually install if missing
+bun add react-router-dom
 ```
 
----
+### TypeScript Errors
 
-### Tailwind Styles Not Loading
+**Error:** Type errors in console
 
-**Symptoms:**
-- App looks unstyled
-- No colors or layout
-
-**Solution:**
+**Solutions:**
 ```bash
-# Check that bunfig.toml has the plugin
-cat bunfig.toml | grep tailwind
+# Check tsconfig.json exists
+cat tsconfig.json
 
-# Restart dev server with clean cache
+# Restart TS server in VS Code
+# Cmd+Shift+P → "TypeScript: Restart TS Server"
+
+# Clear Bun cache
 rm -rf .bun
 bun dev
 ```
 
 ---
 
-### IndexedDB Quota Exceeded
+## Docker Issues
 
-**Error:**
-```
-QuotaExceededError: The quota has been exceeded
-```
+### Build Fails
 
-**Solution:**
+**Error:** Docker build fails
+
+**Solutions:**
 ```bash
-# Open browser console and run:
-# Clear all IndexedDB data:
-indexedDB.deleteDatabase('pdf-tools-db');
+# Clean Docker cache
+docker system prune -a
 
-# Or clear specific tasks:
-# Go to Application tab > IndexedDB > pdf-tools-db
-# Delete old tasks manually
-```
-
----
-
-### Build Fails in Docker
-
-**Error:**
-```
-Error: Cannot find module
-```
-
-**Solution:**
-```bash
-# Make sure all files are committed
-git status
-
-# Rebuild from scratch
-docker-compose down -v
+# Rebuild without cache
 docker-compose build --no-cache
-docker-compose up
+
+# Check Docker version
+docker --version  # Needs 20.10+
+docker-compose --version  # Needs 2.0+
 ```
 
----
+### Container Won't Start
 
-### React Router 404 in Production
+**Error:** Container exits immediately
 
-**Symptoms:**
-- Routes work in dev but not in production
-- Direct navigation to `/jpg-to-pdf` gives 404
+**Solutions:**
+```bash
+# View logs
+docker-compose logs pdf-tools
+
+# Check for port conflicts
+lsof -i :3000
+
+# Restart Docker daemon
+sudo systemctl restart docker  # Linux
+# Or restart Docker Desktop
+```
+
+### Can't Access App in Browser
+
+**Problem:** `http://localhost:3000` doesn't work
+
+**Solutions:**
+```bash
+# Check container is running
+docker-compose ps
+
+# Check port mapping
+docker port pdf-tools
+
+# Test nginx is responding
+curl http://localhost:3000
+
+# Check firewall
+sudo ufw status  # Linux
+```
+
+### Files Not Updating in Container
+
+**Problem:** Code changes don't appear
 
 **Solution:**
-Update `nginx.conf` to handle client-side routing:
-
-```nginx
-location / {
-  try_files $uri $uri/ /index.html;
-}
+```bash
+# Rebuild and restart
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
 ```
-
-This is already configured in the project.
 
 ---
 
-## Debugging Tips
+## Browser Issues
 
-### Enable Verbose Logging
+### App Doesn't Load
 
-```typescript
-// Add to src/index.ts
-console.log('Environment:', process.env.NODE_ENV);
-console.log('Server:', server.url);
+**Problem:** Blank page or loading forever
 
-// Add to components
-console.log('Component mounted:', { props });
-```
+**Solutions:**
+1. **Hard refresh:** Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)
+2. **Check browser console:** F12 → Console tab → Look for errors
+3. **Clear cache:** Browser settings → Clear browsing data
+4. **Try incognito/private mode**
+5. **Try different browser**
 
-### Check Browser Console
+### Features Not Working
 
-1. Open DevTools (F12)
-2. Check Console tab for errors
-3. Check Network tab for failed requests
-4. Check Application tab for IndexedDB/LocalStorage
+**Problem:** Upload, drag-drop, or buttons don't work
 
-### Check Server Logs
+**Solutions:**
+1. **Check console for errors:** F12 → Console
+2. **Verify JavaScript is enabled:** Browser settings
+3. **Disable browser extensions:** Try incognito mode
+4. **Update browser:** Needs Chrome 90+, Firefox 88+, Safari 14+
 
+### Styles Look Broken
+
+**Problem:** No styling or broken layout
+
+**Solutions:**
 ```bash
-# Development
+# Check Tailwind is working
+# Look for <style> tag in page source
+
+# Restart dev server
 bun dev
-# Watch for errors in terminal
 
-# Docker
-docker-compose logs -f pdf-tools
+# Check bunfig.toml has plugin
+cat bunfig.toml | grep tailwind
+
+# Should show: plugins = ["bun-plugin-tailwind"]
+
+# Clear .bun cache
+rm -rf .bun
+bun dev
 ```
-
-### Test PDF Processing
-
-```typescript
-// Add to component
-console.log('File:', file);
-console.log('File type:', file.type);
-console.log('File size:', file.size);
-```
-
----
-
-## Need More Help?
-
-### Check Documentation
-
-- `README.md` - Project overview
-- `ARCHITECTURE.md` - System design
-- `START_HERE.md` - Quick start guide
-- `MVP_COMPLETE.md` - Feature documentation
-
-### Common Commands
-
-```bash
-# Development
-bun install          # Install dependencies
-bun dev             # Start dev server
-bun run build       # Build for production
-bun run setup:worker # Setup PDF.js worker
-
-# Docker
-make docker-build   # Build Docker image
-make docker-up      # Start containers
-make docker-down    # Stop containers
-make docker-logs    # View logs
-
-# Testing
-curl http://localhost:3333/pdf.worker.min.mjs  # Test worker
-curl http://localhost:3333/                     # Test app
-```
-
----
-
-## System Requirements
-
-### Minimum
-- Node.js 18+ or Bun 1.0+
-- 2GB RAM
-- 1GB free disk space
-- Modern browser (Chrome 90+, Firefox 88+, Safari 14+)
-
-### Recommended
-- Bun 1.1+
-- 4GB RAM
-- 2GB free disk space
-- Latest Chrome/Firefox/Safari
-
----
-
-## Browser Support
-
-| Browser | Version | Status |
-|---------|---------|--------|
-| Chrome | 90+ | ✅ Full support |
-| Firefox | 88+ | ✅ Full support |
-| Safari | 14+ | ✅ Full support |
-| Edge | 90+ | ✅ Full support |
-| Opera | 76+ | ✅ Full support |
-| Mobile Chrome | Latest | ✅ Full support |
-| Mobile Safari | Latest | ✅ Full support |
 
 ---
 
 ## Performance Issues
 
-### Large PDF Files
+### App is Slow
 
-**Symptoms:**
-- Slow thumbnail generation
-- Browser becomes unresponsive
-- Memory warnings
+**Possible Causes:**
+- Large PDF files (>50MB)
+- Many pages (>100 pages)
+- Low-end device
+- Browser extensions
 
-**Solution:**
-- Files are limited to 100MB
-- Reduce thumbnail scale in `pdfRenderer.ts`
-- Process pages in smaller batches
-- Consider using pagination for large PDFs
+**Solutions:**
+1. **Use smaller PDFs:** Split large PDFs first
+2. **Close other tabs:** Free up memory
+3. **Disable browser extensions:** Try incognito mode
+4. **Use modern browser:** Chrome/Firefox recommended
+5. **Check system resources:** Task Manager / Activity Monitor
 
-### Memory Leaks
+### Thumbnails Take Forever
 
-**Prevention:**
-- Task queue auto-cleans after 24 hours
-- Blob URLs are revoked after use
-- Canvas elements are cleaned up
-- File references are released
+**Problem:** Organize PDF thumbnail generation is slow
+
+**Expected Behavior:**
+- Small PDFs (<10 pages): < 5 seconds
+- Medium PDFs (10-50 pages): 5-30 seconds
+- Large PDFs (50-100 pages): 30-60 seconds
+
+**Solutions:**
+1. **Be patient:** Large PDFs take time
+2. **Check progress indicator:** Shows current page / total
+3. **Don't upload huge PDFs:** 100+ pages will be very slow
+4. **Close other apps:** Free up CPU
+
+### Browser Crashes
+
+**Problem:** Browser tab crashes or freezes
+
+**Causes:**
+- Very large PDF (>100MB)
+- Too many pages
+- Low memory
+
+**Solutions:**
+1. **Reduce file size:** Use smaller PDFs
+2. **Close other tabs:** Free up memory
+3. **Restart browser**
+4. **Use desktop browser:** Better than mobile
 
 ---
 
-## Security Considerations
+## File Issues
 
-### File Validation
+### File Won't Upload
 
-All uploaded files are validated:
-- File type checking (MIME type)
-- File size limits (100MB)
-- PDF structure validation
-- No server upload (privacy-first)
+**Problem:** File upload fails or nothing happens
 
-### Content Security Policy
+**Checks:**
+1. **File type:** Must be PDF for most tools, or images (JPG/PNG) for JPG to PDF
+2. **File size:** Max 100MB per file
+3. **File is not corrupted:** Try opening in another app first
+4. **Disk space:** Check browser has storage available
 
-If adding CSP headers, make sure to allow:
-- Blob URLs for file downloads
-- Data URLs for thumbnails
-- Worker scripts from same origin
+### Can't Download Result
+
+**Problem:** Download button doesn't work
+
+**Solutions:**
+1. **Check browser download settings**
+2. **Allow downloads from localhost** (browser security setting)
+3. **Check disk space:** Ensure you have enough space
+4. **Try different browser**
+5. **Check task queue:** Result should be there
+
+### Task Queue is Empty
+
+**Problem:** Task disappeared or not showing
+
+**Possible Causes:**
+1. **Auto-cleanup:** Tasks deleted after 24 hours
+2. **Browser data cleared:** IndexedDB cleared
+3. **Different browser:** IndexedDB is per-browser
+4. **Incognito mode:** No persistence
+
+**Solutions:**
+- Tasks are temporary (24h retention)
+- Download immediately after processing
+- Can't recover deleted tasks
 
 ---
 
-## Updates and Maintenance
+## IndexedDB Issues
 
-### Updating Dependencies
+### Quota Exceeded Error
 
-```bash
-# Check for updates
-bun outdated
+**Error:** `QuotaExceededError: The quota has been exceeded`
 
-# Update all dependencies
-bun update
+**Cause:** Browser storage limit reached (usually ~50-100MB)
 
-# Update specific package
-bun update pdf-lib
+**Solutions:**
+```javascript
+// Open browser console (F12) and run:
+indexedDB.deleteDatabase('pdf-tools-db');
 
-# Don't forget to run setup after updating
-bun run setup:worker
+// Or clear tasks via UI:
+// Go to /tasks → Clear All Completed
 ```
 
-### Keeping Worker in Sync
+### Can't Access IndexedDB
 
-The worker file is tied to the `pdfjs-dist` version. After updating:
+**Problem:** Task queue not working
 
+**Solutions:**
+1. **Check browser support:** Modern browser required
+2. **Enable cookies:** Some browsers tie IndexedDB to cookies
+3. **Check incognito mode:** May have restricted storage
+4. **Clear site data:** Browser settings → Clear site data
+
+---
+
+## Network Issues
+
+### Can't Load App
+
+**Problem:** Page won't load
+
+**Checks:**
+1. **Server is running:** `bun dev` in terminal
+2. **Correct port:** http://localhost:3333 (dev) or :3000 (Docker)
+3. **Firewall:** Not blocking local connections
+4. **VPN:** Try disabling VPN
+
+---
+
+## Development Issues
+
+### Hot Reload Not Working
+
+**Problem:** Changes don't appear without manual refresh
+
+**Solutions:**
 ```bash
-# Update pdfjs-dist
-bun update pdfjs-dist
-
-# Recopy worker file
-bun run setup:worker
-
-# Restart dev server
+# Restart with clean cache
+rm -rf .bun
 bun dev
+
+# Check if --hot flag is in script
+cat package.json | grep "dev"
+# Should show: "bun --hot src/index.ts"
 ```
+
+### TypeScript Errors in IDE
+
+**Problem:** Red squiggles everywhere
+
+**Solutions:**
+1. **Restart TypeScript server:** VS Code → Cmd+Shift+P → "Restart TS Server"
+2. **Check tsconfig.json:** Should exist in project root
+3. **Install @types packages:** `bun install`
+4. **Check IDE TypeScript version:** Should use workspace version
+
+---
+
+## Error Messages Reference
+
+### Common Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `bun: command not found` | Bun not installed | Install Bun |
+| `EADDRINUSE :3333` | Port in use | Kill process or use different port |
+| `Failed to fetch...worker` | PDF.js worker not setup | Run `bun run setup:worker` |
+| `QuotaExceededError` | IndexedDB full | Clear old tasks |
+| `File type not supported` | Wrong file type | Use PDF or images (JPG/PNG) |
+| `File too large` | File > 100MB | Use smaller file |
+
+---
+
+## Getting More Help
+
+### Debug Steps
+
+1. **Check browser console:** F12 → Console tab
+2. **Check server logs:** Terminal running `bun dev`
+3. **Check network tab:** F12 → Network → Look for failed requests
+4. **Try incognito mode:** Rules out extensions/cache issues
+5. **Try different browser:** Rules out browser-specific issues
+
+### Gathering Info for Bug Reports
+
+Include:
+- **Browser:** Name and version (e.g., Chrome 120)
+- **OS:** Operating system and version
+- **Error message:** Full error from console
+- **Steps to reproduce:** What you did before the error
+- **File details:** Size and type of file used
+- **Screenshots:** If relevant
+
+### Documentation
+
+- **[USER_GUIDE.md](USER_GUIDE.md)** - How to use features
+- **[INSTALL.md](INSTALL.md)** - Installation guide
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical details
+
+---
+
+## Prevention Tips
+
+### Best Practices
+
+1. **Use recommended browsers:** Chrome 90+, Firefox 88+, Safari 14+
+2. **Keep files reasonable:** < 50MB for best performance
+3. **Download results immediately:** Tasks expire after 24 hours
+4. **Close other tabs:** Free up memory for large PDFs
+5. **Update regularly:** Keep Bun and dependencies updated
+
+### System Requirements
+
+**Minimum:**
+- Modern browser (Chrome 90+, Firefox 88+, Safari 14+)
+- 2GB RAM
+- 1GB free disk space
+
+**Recommended:**
+- Latest browser version
+- 4GB+ RAM
+- 2GB+ free disk space
+- Desktop/laptop (better than mobile for large files)
 
 ---
 
 **Last Updated:** February 4, 2026  
-**Version:** 1.0.0
+**Version:** 1.0.0  
+**For:** PDF Tools MVP

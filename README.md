@@ -62,27 +62,23 @@ A privacy-focused, frontend-only PDF manipulation tool built with React and Bun.
 ### Local Development
 
 ```bash
-# Install dependencies
+# Install dependencies (includes all PDF libraries)
 bun install
 
-# Install PDF libraries
-bun add pdf-lib pdfjs-dist file-saver idb clsx
-bun add -d @types/file-saver
+# Setup PDF.js worker (required)
+bun run setup:worker
 
 # Start development server
 bun dev
 
-# Access at http://localhost:3000
+# Access at http://localhost:3333
 ```
 
 ### Using Docker (Recommended)
 
 ```bash
-# Quick start (build and run)
-make quick-start
-
-# Or manually
-docker compose up -d
+# Build and start
+docker-compose up -d
 
 # Access at http://localhost:3000
 ```

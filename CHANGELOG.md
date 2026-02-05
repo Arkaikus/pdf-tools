@@ -6,27 +6,31 @@ All notable changes to this project will be documented in this file.
 
 ### Changed - 2026-02-04
 
-#### Documentation Consolidation
-- **Streamlined documentation** from 18 files to 5 focused guides
+#### Documentation Consolidation & Reality Check
+- **Streamlined documentation** from 18 files to 5 focused, accurate guides
+- **Reality check on all docs** - Updated to match actual implementation
 - Created comprehensive `docs/USER_GUIDE.md` covering all features
-- Updated `docs/TODO.md` with completed MVP checkboxes
-- Removed redundant documentation files
-- Updated `README.md` with clean documentation table
+- Completely rewrote `docs/INSTALL.md` with correct dependencies and ports
+- Completely rewrote `docs/ARCHITECTURE.md` - removed boilerplate, added reality
+- Created `docs/TROUBLESHOOTING.md` with practical solutions
+- Updated `docs/TODO.md` with all completed MVP checkboxes (Phase 1-3 ✅)
+- Updated `README.md` with correct quick start (port 3333, deps pre-installed)
 
-**Files Removed:**
-- Consolidated feature docs into USER_GUIDE.md
-- Removed completion status docs (covered in TODO.md)
-- Removed duplicate technical docs
-- Removed boilerplate setup guides
+**Key Corrections:**
+- Port: 3333 for dev (not 3000)
+- Dependencies: Already in package.json (no manual add needed)
+- PDF.js worker: Manual setup required via `bun run setup:worker` (NOT automatic)
+- Architecture: Removed Web Workers and other unimplemented features
+- Removed placeholder/future content that doesn't exist yet
 
-**Current Documentation:**
-- `docs/USER_GUIDE.md` - Complete user guide for all features
-- `docs/TODO.md` - Updated roadmap with completed items
-- `docs/INSTALL.md` - Installation instructions
-- `docs/ARCHITECTURE.md` - Technical architecture
-- `docs/TROUBLESHOOTING.md` - Common issues and solutions
-- `CONTRIBUTING.md` - Contributing guidelines
-- `CHANGELOG.md` - Version history
+**Current Documentation (5 files):**
+- `docs/USER_GUIDE.md` - How to use all 4 features (JPG to PDF, Merge, Organize, Tasks)
+- `docs/TODO.md` - Roadmap with Phase 1-3 complete, Phase 4+ future
+- `docs/INSTALL.md` - Accurate installation guide with actual ports and dependencies
+- `docs/ARCHITECTURE.md` - Real implementation, not theoretical architecture
+- `docs/TROUBLESHOOTING.md` - Practical solutions to actual problems
+- `CONTRIBUTING.md` - Contributing guidelines (root)
+- `CHANGELOG.md` - This file (root)
 
 ### Fixed - 2026-02-04
 
@@ -41,9 +45,9 @@ All notable changes to this project will be documented in this file.
 - Copied `pdf.worker.min.mjs` from `pdfjs-dist` package to `public/`
 - Updated `pdfRenderer.ts` to use local worker: `workerSrc = '/pdf.worker.min.mjs'`
 - Added route in `src/index.ts` to serve worker file in development
-- Created automated setup script: `scripts/setup-pdfjs-worker.sh`
-- Added `postinstall` script to automatically copy worker after `bun install`
-- Updated build script to copy `public/` files to `dist/`
+- Created setup script: `scripts/setup-pdfjs-worker.sh` (run via `bun run setup:worker`)
+- Added `setup:worker` script to package.json (must run manually after install)
+- Updated build script to run `setup:worker` and copy `public/` files to `dist/`
 - Updated Dockerfile to include public assets in production image
 - Created `TROUBLESHOOTING.md` with comprehensive debugging guide
 
