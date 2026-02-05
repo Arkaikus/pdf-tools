@@ -7,8 +7,7 @@
     "dev": "bun --hot src/index.ts",
     "build": "bun run setup:worker && bun scripts/build.js",
     "start": "NODE_ENV=production bun src/index.ts",
-    "setup:worker": "bash scripts/setup-pdfjs-worker.sh",
-    "postinstall": "bun run setup:worker"
+    "setup:worker": "bash scripts/setup-pdfjs-worker.sh"
   },
   "dependencies": {
     "react": "^19",

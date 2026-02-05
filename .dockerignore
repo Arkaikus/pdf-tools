@@ -19,5 +19,5 @@ coverage
 *.spec.ts
 *.spec.tsx
 Dockerfile
-docker-compose.yml
+compose.yml
 .dockerignore

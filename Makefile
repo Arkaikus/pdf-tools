@@ -40,23 +40,23 @@ start:
 
 # Docker production commands
 docker-build:
-	docker-compose build pdf-tools
+	docker compose build pdf-tools
 
 docker-up:
-	docker-compose up -d pdf-tools
+	docker compose up -d pdf-tools
 
 docker-down:
-	docker-compose down
+	docker compose down
 
 docker-logs:
-	docker-compose logs -f pdf-tools
+	docker compose logs -f pdf-tools
 
 docker-restart:
-	docker-compose restart pdf-tools
+	docker compose restart pdf-tools
 
 # Docker development commands
 docker-dev:
-	docker-compose --profile dev up pdf-tools-dev
+	docker compose --profile dev up pdf-tools-dev
 
 # Maintenance commands
 clean:
