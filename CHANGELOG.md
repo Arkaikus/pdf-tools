@@ -6,11 +6,27 @@ All notable changes to this project will be documented in this file.
 
 ### Changed - 2026-02-04
 
-#### Documentation Updates
-- Updated `README.md` with documentation table of contents for `docs/` directory
-- Added organized categories: Getting Started, Architecture, Features, Development
-- Added quick summaries for each document
-- Updated roadmap section to reflect Phase 1-3 completion
+#### Documentation Consolidation
+- **Streamlined documentation** from 18 files to 5 focused guides
+- Created comprehensive `docs/USER_GUIDE.md` covering all features
+- Updated `docs/TODO.md` with completed MVP checkboxes
+- Removed redundant documentation files
+- Updated `README.md` with clean documentation table
+
+**Files Removed:**
+- Consolidated feature docs into USER_GUIDE.md
+- Removed completion status docs (covered in TODO.md)
+- Removed duplicate technical docs
+- Removed boilerplate setup guides
+
+**Current Documentation:**
+- `docs/USER_GUIDE.md` - Complete user guide for all features
+- `docs/TODO.md` - Updated roadmap with completed items
+- `docs/INSTALL.md` - Installation instructions
+- `docs/ARCHITECTURE.md` - Technical architecture
+- `docs/TROUBLESHOOTING.md` - Common issues and solutions
+- `CONTRIBUTING.md` - Contributing guidelines
+- `CHANGELOG.md` - Version history
 
 ### Fixed - 2026-02-04
 
