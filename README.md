@@ -82,7 +82,7 @@ bun dev
 make quick-start
 
 # Or manually
-docker-compose up -d
+docker compose up -d
 
 # Access at http://localhost:3000
 ```
@@ -150,13 +150,13 @@ The project includes:
 
 ### Production Container
 ```bash
-docker-compose up -d pdf-tools
+docker compose up -d pdf-tools
 ```
 Accessible at `http://localhost:3000`
 
 ### Development Container
 ```bash
-docker-compose --profile dev up pdf-tools-dev
+docker compose --profile dev up pdf-tools-dev
 ```
 Accessible at `http://localhost:3001`
 
@@ -166,8 +166,8 @@ Accessible at `http://localhost:3001`
 
 | Document | Description |
 |----------|-------------|
-| **[START_HERE.md](START_HERE.md)** | 👋 First-time user guide - Your entry point to the project |
-| **[QUICK_START.md](QUICK_START.md)** | ⚡ Quick setup guide - Get running in 5 minutes |
+| **[START_HERE.md](docs/START_HERE.md)** | 👋 First-time user guide - Your entry point to the project |
+| **[QUICK_START.md](docs/QUICK_START.md)** | ⚡ Quick setup guide - Get running in 5 minutes |
 | **[docs/INSTALL.md](docs/INSTALL.md)** | 📦 Comprehensive installation guide with troubleshooting |
 | **[CHANGELOG.md](CHANGELOG.md)** | 📝 Version history and what's new in each release |
 
@@ -194,7 +194,7 @@ Accessible at `http://localhost:3001`
 
 | Document | Description |
 |----------|-------------|
-| **[TODO.md](TODO.md)** | 📝 Development roadmap and task tracking |
+| **[TODO.md](docs/TODO.md)** | 📝 Development roadmap and task tracking |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | 🤝 Contribution guidelines and development workflow |
 | **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** | 🐛 Common issues, solutions, and debugging guide |
 | **[docs/PDFJS_WORKER_FIX.md](docs/PDFJS_WORKER_FIX.md)** | 🔨 PDF.js worker configuration and CDN fix |
