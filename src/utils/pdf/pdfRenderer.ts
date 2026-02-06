@@ -1,26 +1,24 @@
 // PDF rendering utilities using PDF.js
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Dynamically determine worker path based on current location
-// For GitHub Pages (e.g., /pdf-tools/), extract the base from pathname
-// For local/root deployment, use root path
-const getWorkerLocation = (): string => {
+// Determine worker file location dynamically
+// Supports both root deployments and subdirectory deployments (like GitHub Pages)
+const determineWorkerPath = (): string => {
   if (typeof window === 'undefined') return '/pdf.worker.min.mjs';
   
-  const { pathname } = window.location;
-  // Check if we're in a subdirectory (like GitHub Pages /pdf-tools/)
-  const pathSegments = pathname.split('/').filter(Boolean);
+  // App uses HashRouter, so pathname is the deployment base
+  // Examples:
+  //   - Root: pathname = "/" → worker at "/pdf.worker.min.mjs"
+  //   - GitHub Pages: pathname = "/pdf-tools/" → worker at "/pdf-tools/pdf.worker.min.mjs"
+  const deploymentBase = window.location.pathname;
   
-  // If pathname starts with a project name (not a route), use it as base
-  if (pathSegments.length > 0 && !pathSegments[0].includes('.')) {
-    const potentialBase = `/${pathSegments[0]}`;
-    return `${potentialBase}/pdf.worker.min.mjs`;
-  }
+  // Remove trailing slash and ensure we have a clean base
+  const normalizedBase = deploymentBase.replace(/\/$/, '') || '';
   
-  return '/pdf.worker.min.mjs';
+  return `${normalizedBase}/pdf.worker.min.mjs`;
 };
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = getWorkerLocation();
+pdfjsLib.GlobalWorkerOptions.workerSrc = determineWorkerPath();
 
 /**
  * Generate thumbnail for a PDF page

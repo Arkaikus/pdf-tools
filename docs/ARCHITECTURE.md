@@ -294,10 +294,16 @@ const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
 ```
 
 **PDF.js Worker:**
-- Local worker file: `public/pdf.worker.min.mjs`
-- Manually setup via `bun run setup:worker` (required after install)
-- Automatically runs during build (`bun run build`)
+- Local worker file copied during build: `dist/pdf.worker.min.mjs`
+- Source: `node_modules/pdfjs-dist/build/pdf.worker.min.mjs`
+- Setup via `bun run setup:worker` (copies to `public/`)
+- Build script copies from `public/` to `dist/`
+- **Smart Path Detection**: Automatically adapts to deployment context
+  - Root deployment (`/`): loads from `/pdf.worker.min.mjs`
+  - Subdirectory (GitHub Pages `/pdf-tools/`): loads from `/pdf-tools/pdf.worker.min.mjs`
+  - Uses `window.location.pathname` for runtime detection (works with HashRouter)
 - No CDN dependencies (privacy + reliability)
+- Works offline after initial load
 
 ---
 
