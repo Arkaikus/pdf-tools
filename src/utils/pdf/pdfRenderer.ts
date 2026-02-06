@@ -4,12 +4,18 @@ import * as pdfjsLib from 'pdfjs-dist';
 // Determine worker file location dynamically
 // Supports both root deployments and subdirectory deployments (like GitHub Pages)
 const determineWorkerPath = (): string => {
+  // SSR/build-time: return default path (app doesn't use SSR)
   if (typeof window === 'undefined') return '/pdf.worker.min.mjs';
   
-  // App uses HashRouter, so pathname is the deployment base
+  // App uses HashRouter, so pathname is ALWAYS the deployment base path
+  // HashRouter routes are in the hash fragment (after #), not in pathname
   // Examples:
-  //   - Root: pathname = "/" → worker at "/pdf.worker.min.mjs"
-  //   - GitHub Pages: pathname = "/pdf-tools/" → worker at "/pdf-tools/pdf.worker.min.mjs"
+  //   - Root deployment:         window.location = "http://localhost:3333/"
+  //                              pathname = "/" → worker at "/pdf.worker.min.mjs"
+  //   - GitHub Pages:            window.location = "https://arkaikus.github.io/pdf-tools/"
+  //                              pathname = "/pdf-tools/" → worker at "/pdf-tools/pdf.worker.min.mjs"
+  //   - GitHub Pages on a route: window.location = "https://arkaikus.github.io/pdf-tools/#/merge-pdf"
+  //                              pathname = "/pdf-tools/" (hash is ignored!) → worker at "/pdf-tools/pdf.worker.min.mjs"
   const deploymentBase = window.location.pathname;
   
   // Remove trailing slash and ensure we have a clean base

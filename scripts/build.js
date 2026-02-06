@@ -19,7 +19,17 @@ const workerSource = './public/pdf.worker.min.mjs';
 const workerDest = './dist/pdf.worker.min.mjs';
 
 try {
-  await Bun.write(workerDest, Bun.file(workerSource));
+  // Verify source file exists
+  const sourceFile = Bun.file(workerSource);
+  const exists = await sourceFile.exists();
+  
+  if (!exists) {
+    console.error('❌ PDF.js worker not found at:', workerSource);
+    console.error('   Run "bun run setup:worker" first to copy the worker file from node_modules');
+    process.exit(1);
+  }
+  
+  await Bun.write(workerDest, sourceFile);
   console.log('✅ PDF.js worker copied to dist/');
 } catch (error) {
   console.error('❌ Failed to copy PDF.js worker:', error);
