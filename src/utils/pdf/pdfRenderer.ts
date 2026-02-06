@@ -1,8 +1,26 @@
 // PDF rendering utilities using PDF.js
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set worker path to local file
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+// Dynamically determine worker path based on current location
+// For GitHub Pages (e.g., /pdf-tools/), extract the base from pathname
+// For local/root deployment, use root path
+const getWorkerLocation = (): string => {
+  if (typeof window === 'undefined') return '/pdf.worker.min.mjs';
+  
+  const { pathname } = window.location;
+  // Check if we're in a subdirectory (like GitHub Pages /pdf-tools/)
+  const pathSegments = pathname.split('/').filter(Boolean);
+  
+  // If pathname starts with a project name (not a route), use it as base
+  if (pathSegments.length > 0 && !pathSegments[0].includes('.')) {
+    const potentialBase = `/${pathSegments[0]}`;
+    return `${potentialBase}/pdf.worker.min.mjs`;
+  }
+  
+  return '/pdf.worker.min.mjs';
+};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = getWorkerLocation();
 
 /**
  * Generate thumbnail for a PDF page
