@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import { MainLayout } from './layouts';
 import { ToastProvider } from './contexts/ToastContext';
@@ -17,7 +17,7 @@ export function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ToastProvider>
         <MainLayout>
           <Routes>
@@ -30,7 +30,7 @@ export function App() {
         </MainLayout>
         <ToastContainer />
       </ToastProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
