@@ -651,6 +651,611 @@ try {
 
 ---
 
+## Phase 3.5 Architecture Additions
+
+### PWA Architecture
+
+#### Service Worker Strategy
+
+```typescript
+// Service Worker Lifecycle
+src/
+└── utils/
+    └── sw/
+        ├── registerSW.ts      // Registration & update logic
+        ├── swConfig.ts        // Cache names & strategies
+        └── index.ts
+
+public/
+└── sw.js                      // Service worker implementation
+```
+
+**Cache Strategies:**
+
+| Resource Type | Strategy | TTL | Purpose |
+|---------------|----------|-----|---------|
+| App Shell | Cache First | ∞ | HTML, CSS, JS bundles |
+| PDF.js Worker | Cache First | ∞ | PDF processing |
+| Generated PDFs | Network First | 24h | Task results |
+| Images/Icons | Cache First | 7d | UI assets |
+| API (future) | Network Only | - | External services |
+
+**Cache Structure:**
+```typescript
+{
+  'pdf-tools-v1-static': ['/', '/index.css', '/main.js'],
+  'pdf-tools-v1-runtime': ['/pdf.worker.min.mjs'],
+  'pdf-tools-v1-dynamic': ['generated-pdfs...']
+}
+```
+
+#### Offline Behavior
+
+```
+Online:
+  - Full functionality
+  - Cache updates in background
+
+Offline:
+  - Read-only mode
+  - View cached tasks
+  - Access previously generated PDFs
+  - Upload disabled (show message)
+  - Processing disabled (show message)
+```
+
+#### PWA Manifest
+
+```json
+{
+  "name": "PDF Tools",
+  "short_name": "PDF Tools",
+  "display": "standalone",
+  "start_url": "/",
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable.png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}
+```
+
+---
+
+### Pipeline Architecture
+
+#### Data Flow for Task Piping
+
+```
+Task Queue (Source)
+  ↓
+  User selects "Use in [Tool]"
+  ↓
+  SessionStorage ← { taskId, files[], targetTool }
+  ↓
+  Navigate to target tool
+  ↓
+  Tool reads SessionStorage
+  ↓
+  Files pre-loaded in tool
+  ↓
+  SessionStorage cleared
+  ↓
+  New task created (linked to source)
+```
+
+#### Pipeline Context
+
+```typescript
+// contexts/PipelineContext.tsx
+interface PipelineContextValue {
+  pipedFiles: PipedFile[];
+  sourceTask?: Task;
+  pipeFiles: (taskId: string, tool: string) => Promise<void>;
+  clearPipedFiles: () => void;
+  isPiping: boolean;
+}
+
+// SessionStorage Schema
+interface PipelineSession {
+  sourceTaskId: string;
+  targetTool: string;
+  files: {
+    name: string;
+    blobUrl: string;  // Object URL (temporary)
+    type: string;
+    size: number;
+  }[];
+  timestamp: number;
+}
+```
+
+#### Integration Points
+
+```typescript
+// TaskQueue.tsx - Action Menu
+<TaskActionMenu task={task}>
+  <MenuItem onClick={() => pipeToMerge(task)}>
+    🔀 Use in Merge PDF
+  </MenuItem>
+  <MenuItem onClick={() => pipeToOrganize(task)}>
+    📑 Use in Organize PDF
+  </MenuItem>
+</TaskActionMenu>
+
+// MergePdf.tsx - Accept Piped Files
+const { pipedFiles, clearPipedFiles } = usePipeline();
+
+useEffect(() => {
+  if (pipedFiles.length > 0) {
+    // Convert PipedFile[] to File[]
+    const files = await convertPipedFiles(pipedFiles);
+    setInputFiles(prev => [...prev, ...files]);
+    clearPipedFiles();
+    
+    showToast({
+      type: 'info',
+      message: `Added ${files.length} file(s) from task queue`
+    });
+  }
+}, [pipedFiles]);
+```
+
+#### Pipeline History Tracking
+
+```typescript
+// Extended Task interface
+interface Task {
+  // ... existing fields
+  pipelineMetadata?: {
+    sourceTaskId?: string;      // Parent task (if piped from)
+    pipedToTasks?: string[];    // Child tasks (if piped to)
+    pipeHistory?: string[];     // Full chain: [taskA, taskB, taskC]
+  };
+}
+
+// Visual representation in UI
+Task A (Merge) → Task B (Organize) → Task C (Split)
+```
+
+---
+
+### Vault & Encryption Architecture
+
+#### Crypto Layer
+
+```typescript
+src/
+└── utils/
+    └── crypto/
+        ├── encryption.ts       // AES-GCM operations
+        ├── keyDerivation.ts    // PBKDF2 key generation
+        ├── vaultService.ts     // High-level vault API
+        ├── sessionManager.ts   // Auth session handling
+        └── index.ts
+```
+
+#### Encryption Flow
+
+```
+User enters PIN
+  ↓
+PBKDF2 (100k iterations) + Salt
+  ↓
+AES-256-GCM Key (in memory only)
+  ↓
+Encrypt file data
+  ↓
+Store { encryptedData, iv, metadata }
+  ↓
+Clear key from memory on lock
+```
+
+**Key Derivation:**
+```typescript
+// Password → Encryption Key
+async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const passwordKey = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    passwordKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+```
+
+#### Vault Storage Schema
+
+```typescript
+// IndexedDB: pdf-tools-db
+// New Store: vault
+
+interface VaultConfig {
+  id: 'config';
+  salt: Uint8Array;            // Random salt for PBKDF2
+  hashedPassword: string;      // For verification (SHA-256)
+  iterations: number;          // PBKDF2 iterations (100k+)
+  lockTimeout: number;         // Auto-lock timeout (ms)
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface VaultItem {
+  id: string;                  // Unique ID
+  type: 'file' | 'setting';    // Item type
+  encryptedData: ArrayBuffer;  // AES-GCM encrypted
+  iv: Uint8Array;              // Initialization vector (12 bytes)
+  metadata: {                  // NOT encrypted (for display)
+    name: string;
+    size: number;
+    createdAt: number;
+    icon?: string;
+  };
+}
+```
+
+#### Session Management
+
+```typescript
+// In-memory session (NOT persisted)
+interface VaultSession {
+  token: string;               // Random UUID
+  key: CryptoKey;              // AES key (in memory)
+  unlockedAt: number;
+  expiresAt: number;
+  isLocked: boolean;
+}
+
+// Auto-lock triggers
+- Timeout reached (default: 24h)
+- Tab/window close (beforeunload)
+- Manual lock button
+- 3 failed decryption attempts
+```
+
+#### Vault Context API
+
+```typescript
+// contexts/VaultContext.tsx
+interface VaultContextValue {
+  // State
+  isInitialized: boolean;
+  isLocked: boolean;
+  session?: VaultSession;
+  
+  // Setup
+  createVault: (password: string) => Promise<void>;
+  resetVault: () => Promise<void>;
+  
+  // Auth
+  unlock: (password: string) => Promise<boolean>;
+  lock: () => void;
+  changePassword: (oldPass: string, newPass: string) => Promise<void>;
+  
+  // Operations
+  saveToVault: (item: VaultItem) => Promise<void>;
+  getFromVault: (id: string) => Promise<ArrayBuffer | null>;
+  deleteFromVault: (id: string) => Promise<void>;
+  listVaultItems: () => Promise<VaultItem[]>;
+  
+  // Settings
+  setLockTimeout: (ms: number) => Promise<void>;
+}
+```
+
+#### Task Queue Integration
+
+```typescript
+// Extended Task interface
+interface Task {
+  // ... existing fields
+  isVaultProtected?: boolean;   // Flag for vault tasks
+  vaultItemId?: string;         // Link to VaultItem
+}
+
+// UI behavior
+- Regular tasks: 24h auto-cleanup
+- Vault tasks: persist indefinitely (no auto-cleanup)
+- Vault tasks hidden when locked
+- Download requires unlock
+- Separate "Vault Tasks" section in UI
+```
+
+#### Security Considerations
+
+**What is encrypted:**
+- ✅ Task result files (PDFs, images)
+- ✅ API keys (future LLM integration)
+- ✅ Sensitive user settings
+
+**What is NOT encrypted:**
+- ❌ Task metadata (name, size, date)
+- ❌ App settings (theme, preferences)
+- ❌ Regular task queue (non-vault)
+
+**Security guarantees:**
+- No plaintext passwords stored
+- Encryption key never persisted (memory only)
+- Salt is unique per vault
+- IV is unique per encryption
+- Auto-lock prevents unauthorized access
+- 3-strike lockout prevents brute force
+
+**Limitations:**
+- Memory-resident keys can be extracted via dev tools
+- XSS vulnerabilities could expose keys
+- Users responsible for password strength
+- Forgotten password = permanent data loss
+
+---
+
+### Settings Architecture
+
+#### Settings Storage
+
+```typescript
+// LocalStorage: user-settings
+interface UserSettings {
+  // General
+  theme: 'light' | 'dark' | 'auto';
+  language: 'en' | 'es' | 'fr' | '...';
+  dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
+  
+  // PDF Defaults
+  defaultPageSize: 'A4' | 'Letter' | 'Legal';
+  defaultOrientation: 'portrait' | 'landscape';
+  defaultMargins: { top: number; right: number; bottom: number; left: number };
+  
+  // Task Queue
+  taskCleanupTime: number;      // 24h, 48h, 7d, never
+  maxTasksToKeep: number;       // 10, 25, 50, unlimited
+  showCompletedTasks: boolean;
+  
+  // Vault
+  vaultEnabled: boolean;
+  vaultLockTimeout: number;     // 15min, 1h, 6h, 24h
+  vaultAutoLock: boolean;
+  
+  // Privacy
+  analyticsEnabled: boolean;    // Future
+  crashReportsEnabled: boolean; // Future
+}
+```
+
+#### Settings Page Structure
+
+```typescript
+src/pages/Settings.tsx
+
+<SettingsPage>
+  <SettingsSection title="General">
+    <ThemeSelector />
+    <LanguageSelector />
+    <DateFormatSelector />
+  </SettingsSection>
+  
+  <SettingsSection title="PDF Defaults">
+    <PageSizeSelector />
+    <OrientationSelector />
+    <MarginControls />
+  </SettingsSection>
+  
+  <SettingsSection title="Task Queue">
+    <CleanupTimeSelector />
+    <MaxTasksSelector />
+    <ClearAllTasksButton />
+  </SettingsSection>
+  
+  <SettingsSection title="Vault & Security">
+    <VaultToggle />
+    <ChangePINButton />
+    <LockTimeoutSelector />
+    <ResetVaultButton />
+  </SettingsSection>
+  
+  <SettingsSection title="Privacy">
+    <ClearCacheButton />
+    <StorageUsageDisplay />
+    <ExportDataButton />
+    <ImportDataButton />
+  </SettingsSection>
+  
+  <SettingsSection title="About">
+    <AppVersion />
+    <GitHubLink />
+    <LicenseInfo />
+    <PrivacyPolicy />
+  </SettingsSection>
+</SettingsPage>
+```
+
+---
+
+## Updated Project Structure (Phase 3.5)
+
+```
+src/
+├── components/
+│   ├── common/          # Existing common components
+│   ├── pdf/             # Existing PDF components
+│   └── vault/           # NEW: Vault UI components
+│       ├── VaultSetup.tsx
+│       ├── VaultLogin.tsx
+│       ├── VaultIndicator.tsx
+│       ├── VaultSettings.tsx
+│       └── index.ts
+│
+├── contexts/
+│   ├── ToastContext.tsx        # Existing
+│   ├── PipelineContext.tsx     # NEW: Task piping
+│   └── VaultContext.tsx        # NEW: Vault state
+│
+├── hooks/
+│   ├── useTaskQueue.ts         # Existing
+│   ├── usePipeline.ts          # NEW: Pipeline operations
+│   ├── useVault.ts             # NEW: Vault operations
+│   ├── useVaultSession.ts      # NEW: Session management
+│   └── useOnlineStatus.ts      # NEW: PWA offline detection
+│
+├── pages/
+│   ├── Home.tsx                # Existing
+│   ├── TaskQueue.tsx           # Existing (enhanced)
+│   └── Settings.tsx            # NEW: Settings page
+│
+├── utils/
+│   ├── crypto/                 # NEW: Encryption utilities
+│   │   ├── encryption.ts
+│   │   ├── keyDerivation.ts
+│   │   ├── vaultService.ts
+│   │   ├── sessionManager.ts
+│   │   └── index.ts
+│   ├── sw/                     # NEW: Service worker utils
+│   │   ├── registerSW.ts
+│   │   ├── swConfig.ts
+│   │   └── index.ts
+│   ├── pipeline/               # NEW: Task piping utils
+│   │   ├── pipelineManager.ts
+│   │   └── index.ts
+│   └── storage/
+│       ├── indexedDB.ts        # Enhanced for vault
+│       └── localStorage.ts     # Enhanced for settings
+│
+└── types/
+    ├── vault.types.ts          # NEW: Vault types
+    ├── pipeline.types.ts       # NEW: Pipeline types
+    └── settings.types.ts       # NEW: Settings types
+
+public/
+├── manifest.json               # NEW: PWA manifest
+├── sw.js                       # NEW: Service worker
+├── icon-192.png                # NEW: PWA icon
+├── icon-512.png                # NEW: PWA icon
+└── icon-maskable.png           # NEW: Maskable icon
+```
+
+---
+
+## Updated Data Flow Diagrams
+
+### Task Queue Pipeline Flow
+
+```
+┌─────────────┐
+│ Task Queue  │
+│  (Source)   │
+└──────┬──────┘
+       │ User clicks "Use in Tool"
+       ↓
+┌──────────────┐
+│ Pipeline     │
+│ Context      │ → SessionStorage
+└──────┬───────┘
+       │ Navigate to tool
+       ↓
+┌──────────────┐
+│ Target Tool  │
+│ (MergePdf)   │ ← Read SessionStorage
+└──────┬───────┘
+       │ Files pre-loaded
+       ↓
+┌──────────────┐
+│ Process &    │
+│ Create Task  │ → Link to source task
+└──────────────┘
+```
+
+### Vault Encryption Flow
+
+```
+┌─────────────┐
+│ User enters │
+│  Password   │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│   PBKDF2    │ (100k iterations)
+│  + Salt     │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│  AES-256    │ (key in memory)
+│    Key      │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│  Encrypt    │ (file data)
+│   Data      │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│  IndexedDB  │ { encrypted, iv, metadata }
+│   Vault     │
+└─────────────┘
+```
+
+### PWA Offline Flow
+
+```
+┌─────────────┐
+│   Online    │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐     Yes      ┌─────────────┐
+│  In Cache?  │──────────────→│ Return from │
+└──────┬──────┘               │   Cache     │
+       │ No                   └─────────────┘
+       ↓
+┌─────────────┐
+│   Fetch     │
+│  Network    │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│ Update      │
+│ Cache       │
+└─────────────┘
+
+┌─────────────┐
+│  Offline    │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐     Yes      ┌─────────────┐
+│  In Cache?  │──────────────→│ Return from │
+└──────┬──────┘               │   Cache     │
+       │ No                   └─────────────┘
+       ↓
+┌─────────────┐
+│   Show      │
+│  Offline    │
+│   Page      │
+└─────────────┘
+```
+
+---
+
 ## Future Architecture Improvements
 
 ### Phase 4-5 Enhancements
@@ -658,7 +1263,6 @@ try {
 - Web Workers for processing
 - Virtual scrolling for large PDFs
 - Progressive thumbnail loading
-- PWA support (offline mode)
 - Batch operations
 - Keyboard shortcuts
 
@@ -668,7 +1272,7 @@ try {
 - Integration tests
 - Performance benchmarks
 - Accessibility audit
-- Security audit
+- Security audit (especially vault)
 
 ---
 

@@ -1,7 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { mergePDFs, getPDFPageCount } from '../../../utils/pdf';
 import { downloadFile, generateFilename, validatePDFFile } from '../../../utils/file';
 import { useTaskQueue } from '../../../hooks/useTaskQueue';
+import { usePipeline } from '../../../contexts/PipelineContext';
+import { useToast } from '../../../contexts/ToastContext';
+import { pipedFilesToFiles } from '../../../utils/pipeline';
 import type { MergePDFOptions, PDFFile } from '../../../types/pdf.types';
 
 interface PDFFileWithPages extends PDFFile {
@@ -27,6 +30,29 @@ export const usePDFMerger = (): UsePDFMergerResult => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { createNewTask, completeTask, failTask } = useTaskQueue();
+  const { pipedFiles, sourceTaskId, clearPipedFiles } = usePipeline();
+  const { addToast } = useToast();
+
+  // Handle piped files from task queue
+  useEffect(() => {
+    if (pipedFiles.length > 0) {
+      const loadPipedFiles = async () => {
+        try {
+          const fileObjects = pipedFilesToFiles(pipedFiles);
+          await addFiles(fileObjects);
+          
+          addToast('success', `Added ${fileObjects.length} file(s) from task ${sourceTaskId}`);
+          
+          clearPipedFiles();
+        } catch (err) {
+          console.error('Failed to load piped files:', err);
+          addToast('error', 'Failed to load piped files');
+        }
+      };
+
+      loadPipedFiles();
+    }
+  }, [pipedFiles, sourceTaskId, clearPipedFiles, addToast]);
 
   const addFiles = useCallback(async (newFiles: File[]) => {
     const validFiles: PDFFileWithPages[] = [];
@@ -96,10 +122,11 @@ export const usePDFMerger = (): UsePDFMergerResult => {
     let taskId: string | null = null;
 
     try {
-      // Create task
+      // Create task with pipeline metadata if available
       taskId = await createNewTask(
         'merge-pdf',
-        files.map((f) => ({ name: f.name, size: f.size }))
+        files.map((f) => ({ name: f.name, size: f.size })),
+        sourceTaskId ? { sourceTaskId } : undefined
       );
 
       // Convert PDFFile back to File objects

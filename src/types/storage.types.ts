@@ -1,5 +1,7 @@
 // Storage-related type definitions
 
+import type { PipelineMetadata } from './pipeline.types';
+
 export interface StoredFile {
   id: string;
   name: string;
@@ -39,6 +41,7 @@ export interface Task {
   createdAt: Date;
   completedAt?: Date;
   expiresAt: Date;
+  pipelineMetadata?: PipelineMetadata;
 }
 
 export interface DBSchema {

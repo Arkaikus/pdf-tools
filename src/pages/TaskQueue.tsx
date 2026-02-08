@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import React, { type FC } from 'react';
 import { 
   FaDownload, 
   FaTrash, 
@@ -8,12 +8,16 @@ import {
   FaImage,
   FaFileAlt,
   FaTh,
-  FaInfoCircle
+  FaInfoCircle,
+  FaLink
 } from 'react-icons/fa';
 import { useTaskQueue } from '../hooks/useTaskQueue';
+import { usePipeline } from '../contexts/PipelineContext';
+import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/common/Button';
+import { TaskActionMenu } from '../components/common/TaskActionMenu';
 import { formatBytes, formatRelativeTime, pluralize } from '../utils/helpers';
-import type { Task } from '../types/storage.types';
+import type { Task, TaskTool } from '../types/storage.types';
 
 const toolIcons = {
   'jpg-to-pdf': <FaImage className="w-5 h-5 text-primary-600" />,
@@ -48,6 +52,19 @@ export const TaskQueue: FC = () => {
     clearAllTasks,
     downloadTaskResult,
   } = useTaskQueue();
+  
+  const { pipeTask, isPiping } = usePipeline();
+  const { addToast } = useToast();
+
+  const handlePipeTask = async (task: Task, targetTool: TaskTool) => {
+    try {
+      await pipeTask(task, targetTool);
+      addToast('info', 'Redirecting to tool with piped file...');
+    } catch (error) {
+      console.error('Failed to pipe task:', error);
+      addToast('error', 'Failed to pipe task result');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -126,6 +143,7 @@ export const TaskQueue: FC = () => {
               task={task}
               onDownload={downloadTaskResult}
               onRemove={removeTask}
+              onPipeToTool={(tool) => handlePipeTask(task, tool)}
             />
           ))}
         </div>
@@ -138,97 +156,173 @@ interface TaskCardProps {
   task: Task;
   onDownload: (task: Task) => void;
   onRemove: (id: string) => void;
+  onPipeToTool: (tool: TaskTool) => void;
 }
 
-const TaskCard: FC<TaskCardProps> = ({ task, onDownload, onRemove }) => {
+const TaskCard: FC<TaskCardProps> = ({ task, onDownload, onRemove, onPipeToTool }) => {
+  // Determine available pipeline actions
+  const availableActions: { tool: TaskTool; label: string; icon: React.ReactNode }[] = [];
+  
+  if (task.status === 'completed' && task.outputFile?.name.endsWith('.pdf')) {
+    if (task.tool !== 'merge-pdf') {
+      availableActions.push({
+        tool: 'merge-pdf',
+        label: 'Merge PDF',
+        icon: <FaFileAlt className="w-4 h-4" />,
+      });
+    }
+    if (task.tool !== 'organize-pdf') {
+      availableActions.push({
+        tool: 'organize-pdf',
+        label: 'Organize PDF',
+        icon: <FaTh className="w-4 h-4" />,
+      });
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-soft p-6">
-      <div className="flex items-start gap-4">
-        {/* Icon */}
-        <div className="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-          {toolIcons[task.tool]}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6">
+        {/* Left Column - Task Info */}
+        <div className="flex items-start gap-4 min-w-0">
+          {/* Icon */}
+          <div className="shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+            {toolIcons[task.tool]}
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-gray-900">{toolNames[task.tool]}</h3>
-                <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded">
-                  {task.id}
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h3 className="font-bold text-gray-900">{toolNames[task.tool]}</h3>
+                  <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded">
+                    {task.id}
+                  </span>
+                  {task.pipelineMetadata?.sourceTaskId && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded flex items-center gap-1">
+                      <FaLink className="w-3 h-3" />
+                      From: {task.pipelineMetadata.sourceTaskId}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500">
+                  {formatRelativeTime(task.createdAt)}
+                  {task.completedAt && task.status === 'completed' && (
+                    <> • Completed {formatRelativeTime(task.completedAt)}</>
+                  )}
+                </p>
+              </div>
+
+              {/* Status Badge - Mobile Only */}
+              <div className="md:hidden">
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${statusColors[task.status]}`}>
+                  {statusIcons[task.status]}
+                  <span className="text-sm font-medium capitalize">{task.status}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Input Files */}
+            <div className="mb-3">
+              <p className="text-sm font-medium text-gray-700 mb-1">Input Files:</p>
+              <div className="flex flex-wrap gap-2">
+                {task.inputFiles.map((file, index) => (
+                  <span
+                    key={index}
+                    className="text-xs bg-gray-100 px-2 py-1 rounded"
+                  >
+                    {file.name} ({formatBytes(file.size)})
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Output File */}
+            {task.outputFile && (
+              <div className="mb-3">
+                <p className="text-sm font-medium text-gray-700 mb-1">Output:</p>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                  {task.outputFile.name} ({formatBytes(task.outputFile.size)})
                 </span>
               </div>
-              <p className="text-sm text-gray-500">
-                {formatRelativeTime(task.createdAt)}
-                {task.completedAt && task.status === 'completed' && (
-                  <> • Completed {formatRelativeTime(task.completedAt)}</>
-                )}
-              </p>
-            </div>
-
-            {/* Status Badge */}
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${statusColors[task.status]}`}>
-              {statusIcons[task.status]}
-              <span className="text-sm font-medium capitalize">{task.status}</span>
-            </div>
-          </div>
-
-          {/* Input Files */}
-          <div className="mb-3">
-            <p className="text-sm font-medium text-gray-700 mb-1">Input Files:</p>
-            <div className="flex flex-wrap gap-2">
-              {task.inputFiles.map((file, index) => (
-                <span
-                  key={index}
-                  className="text-xs bg-gray-100 px-2 py-1 rounded"
-                >
-                  {file.name} ({formatBytes(file.size)})
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Output File */}
-          {task.outputFile && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-gray-700 mb-1">Output:</p>
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                {task.outputFile.name} ({formatBytes(task.outputFile.size)})
-              </span>
-            </div>
-          )}
-
-          {/* Error */}
-          {task.error && (
-            <div className="mb-3 bg-red-50 border border-red-200 rounded p-3">
-              <p className="text-sm text-red-800">{task.error}</p>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 mt-4">
-            {task.status === 'completed' && task.outputFile && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onDownload(task)}
-                leftIcon={<FaDownload />}
-              >
-                Download
-              </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onRemove(task.id)}
-              leftIcon={<FaTrash />}
-            >
-              Remove
-            </Button>
+
+            {/* Error */}
+            {task.error && (
+              <div className="mb-3 bg-red-50 border border-red-200 rounded p-3">
+                <p className="text-sm text-red-800">{task.error}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 mt-4">
+              {task.status === 'completed' && task.outputFile && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onDownload(task)}
+                  leftIcon={<FaDownload />}
+                >
+                  Download
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onRemove(task.id)}
+                leftIcon={<FaTrash />}
+              >
+                Remove
+              </Button>
+              
+              {/* Mobile: Show action menu if actions available */}
+              <div className="md:hidden ml-auto">
+                <TaskActionMenu task={task} onPipeToTool={onPipeToTool} />
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Right Column - What's Next Section (Desktop Only) */}
+        {availableActions.length > 0 && (
+          <div className="hidden md:flex flex-col gap-3 pl-6 min-w-[240px]">
+            {/* Status Badge */}
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${statusColors[task.status]}`}>
+                {statusIcons[task.status]}
+                <span className="text-sm font-medium capitalize">{task.status}</span>
+              </div>
+            </div>
+
+            {/* What's Next Section */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">What's next?</h4>
+              <div className="space-y-2">
+                {availableActions.map((action) => (
+                  <button
+                    key={action.tool}
+                    onClick={() => onPipeToTool(action.tool)}
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-300 rounded-lg transition-colors group text-left"
+                  >
+                    <div className="shrink-0 w-8 h-8 bg-white group-hover:bg-primary-100 border border-gray-200 group-hover:border-primary-300 rounded-lg flex items-center justify-center text-gray-600 group-hover:text-primary-600 transition-colors">
+                      {action.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 group-hover:text-primary-700">
+                        {action.label}
+                      </div>
+                      <div className="text-xs text-gray-500 group-hover:text-primary-600 mt-0.5">
+                        Use result in this tool
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

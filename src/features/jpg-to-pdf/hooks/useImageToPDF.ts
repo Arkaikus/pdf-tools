@@ -1,7 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { convertImagesToPDF } from '../../../utils/pdf';
 import { downloadFile, generateFilename, validateImageFile } from '../../../utils/file';
 import { useTaskQueue } from '../../../hooks/useTaskQueue';
+import { usePipeline } from '../../../contexts/PipelineContext';
+import { useToast } from '../../../contexts/ToastContext';
+import { pipedFilesToFiles } from '../../../utils/pipeline';
 import type { ImageToPDFOptions } from '../../../types/pdf.types';
 import type { FileWithPreview } from '../../../types/global.d';
 
@@ -23,6 +26,39 @@ export const useImageToPDF = (): UseImageToPDFResult => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { createNewTask, completeTask, failTask } = useTaskQueue();
+  const { pipedFiles, sourceTaskId, clearPipedFiles } = usePipeline();
+  const { addToast } = useToast();
+
+  // Handle piped files from task queue (for future image piping support)
+  useEffect(() => {
+    if (pipedFiles.length > 0) {
+      const loadPipedFiles = async () => {
+        try {
+          const fileObjects = pipedFilesToFiles(pipedFiles);
+          
+          // Filter only image files
+          const imageFiles = fileObjects.filter(file => 
+            file.type.startsWith('image/')
+          );
+          
+          if (imageFiles.length > 0) {
+            addFiles(imageFiles);
+            
+            addToast('success', `Added ${imageFiles.length} image(s) from task ${sourceTaskId}`);
+          } else {
+            addToast('warning', 'Piped files are not images. Please upload image files.');
+          }
+          
+          clearPipedFiles();
+        } catch (err) {
+          console.error('Failed to load piped files:', err);
+          addToast('error', 'Failed to load piped files');
+        }
+      };
+
+      loadPipedFiles();
+    }
+  }, [pipedFiles, sourceTaskId, clearPipedFiles, addToast]);
 
   const addFiles = useCallback((newFiles: File[]) => {
     const validFiles: FileWithPreview[] = [];
@@ -85,10 +121,11 @@ export const useImageToPDF = (): UseImageToPDFResult => {
       let taskId: string | null = null;
 
       try {
-        // Create task
+        // Create task with pipeline metadata if available
         taskId = await createNewTask(
           'jpg-to-pdf',
-          files.map((f) => ({ name: f.name, size: f.size }))
+          files.map((f) => ({ name: f.name, size: f.size })),
+          sourceTaskId ? { sourceTaskId } : undefined
         );
 
         // Convert images to PDF

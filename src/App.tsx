@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import { MainLayout } from './layouts';
 import { ToastProvider } from './contexts/ToastContext';
+import { PipelineProvider } from './contexts/PipelineContext';
 import { ToastContainer } from './components/common/Toast';
 import { Home, TaskQueue } from './pages';
 import { JpgToPdf } from './features/jpg-to-pdf';
@@ -19,16 +20,18 @@ export function App() {
   return (
     <HashRouter>
       <ToastProvider>
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/jpg-to-pdf" element={<JpgToPdf />} />
-            <Route path="/merge-pdf" element={<MergePdf />} />
-            <Route path="/organize-pdf" element={<OrganizePdf />} />
-            <Route path="/tasks" element={<TaskQueue />} />
-          </Routes>
-        </MainLayout>
-        <ToastContainer />
+        <PipelineProvider>
+          <MainLayout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/jpg-to-pdf" element={<JpgToPdf />} />
+              <Route path="/merge-pdf" element={<MergePdf />} />
+              <Route path="/organize-pdf" element={<OrganizePdf />} />
+              <Route path="/tasks" element={<TaskQueue />} />
+            </Routes>
+          </MainLayout>
+          <ToastContainer />
+        </PipelineProvider>
       </ToastProvider>
     </HashRouter>
   );

@@ -1,7 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { organizePDF, generateAllThumbnails } from '../../../utils/pdf';
 import { downloadFile, generateFilename, validatePDFFile } from '../../../utils/file';
 import { useTaskQueue } from '../../../hooks/useTaskQueue';
+import { usePipeline } from '../../../contexts/PipelineContext';
+import { useToast } from '../../../contexts/ToastContext';
+import { pipedFilesToFiles } from '../../../utils/pipeline';
 import type { PageOperation } from '../../../utils/pdf/pdfOrganizer';
 
 export interface PDFPageData {
@@ -35,6 +38,33 @@ export const useOrganizePDF = (): UseOrganizePDFResult => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { createNewTask, completeTask, failTask } = useTaskQueue();
+  const { pipedFiles, sourceTaskId, clearPipedFiles } = usePipeline();
+  const { addToast } = useToast();
+
+  // Handle piped files from task queue
+  useEffect(() => {
+    if (pipedFiles.length > 0) {
+      const loadPipedFile = async () => {
+        try {
+          const fileObjects = pipedFilesToFiles(pipedFiles);
+          
+          // Organize PDF only accepts a single file
+          if (fileObjects.length > 0) {
+            await loadPDF(fileObjects[0]);
+            
+            addToast('success', `Loaded PDF from task ${sourceTaskId}`);
+          }
+          
+          clearPipedFiles();
+        } catch (err) {
+          console.error('Failed to load piped file:', err);
+          addToast('error', 'Failed to load piped file');
+        }
+      };
+
+      loadPipedFile();
+    }
+  }, [pipedFiles, sourceTaskId, clearPipedFiles, addToast]);
 
   const loadPDF = useCallback(async (pdfFile: File) => {
     const validation = validatePDFFile(pdfFile);
@@ -124,10 +154,12 @@ export const useOrganizePDF = (): UseOrganizePDFResult => {
     let taskId: string | null = null;
 
     try {
-      // Create task
-      taskId = await createNewTask('organize-pdf', [
-        { name: file.name, size: file.size },
-      ]);
+      // Create task with pipeline metadata if available
+      taskId = await createNewTask(
+        'organize-pdf',
+        [{ name: file.name, size: file.size }],
+        sourceTaskId ? { sourceTaskId } : undefined
+      );
 
       // Build page operations
       const operations: PageOperation[] = pages.map((page) => ({

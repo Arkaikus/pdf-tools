@@ -10,6 +10,7 @@ import {
   getTaskStats,
 } from '../utils/storage';
 import type { Task, TaskTool, TaskStatus } from '../types/storage.types';
+import type { PipelineMetadata } from '../types/pipeline.types';
 
 interface UseTaskQueueResult {
   tasks: Task[];
@@ -22,7 +23,8 @@ interface UseTaskQueueResult {
   isLoading: boolean;
   createNewTask: (
     tool: TaskTool,
-    inputFiles: { name: string; size: number }[]
+    inputFiles: { name: string; size: number }[],
+    pipelineMetadata?: PipelineMetadata
   ) => Promise<string>;
   completeTask: (
     id: string,
@@ -65,12 +67,14 @@ export const useTaskQueue = (): UseTaskQueueResult => {
   const createNewTask = useCallback(
     async (
       tool: TaskTool,
-      inputFiles: { name: string; size: number }[]
+      inputFiles: { name: string; size: number }[],
+      pipelineMetadata?: PipelineMetadata
     ): Promise<string> => {
       const taskId = await createTask({
         tool,
         status: 'processing',
         inputFiles,
+        pipelineMetadata,
       });
       await refreshTasks();
       return taskId;
