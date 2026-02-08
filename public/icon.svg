@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="#3b82f6"/>
+  
+  <!-- PDF Document -->
+  <g transform="translate(106, 80)">
+    <!-- Document body -->
+    <rect x="0" y="40" width="300" height="352" rx="8" fill="#ffffff"/>
+    
+    <!-- Folded corner -->
+    <path d="M 240 40 L 300 40 L 300 100 Z" fill="#e5e7eb"/>
+    <path d="M 240 40 L 300 100 L 240 100 Z" fill="#f3f4f6"/>
+    
+    <!-- PDF Text -->
+    <text x="150" y="240" font-family="Arial, sans-serif" font-size="72" font-weight="bold" text-anchor="middle" fill="#3b82f6">PDF</text>
+    
+    <!-- Lines representing text -->
+    <rect x="40" y="280" width="220" height="8" rx="4" fill="#d1d5db"/>
+    <rect x="40" y="305" width="180" height="8" rx="4" fill="#d1d5db"/>
+    <rect x="40" y="330" width="200" height="8" rx="4" fill="#d1d5db"/>
+  </g>
+</svg>

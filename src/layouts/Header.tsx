@@ -8,13 +8,13 @@ export const Header: FC = () => {
   const activeTasks = stats.processing + stats.completed;
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center shadow-medium group-hover:shadow-large transition-shadow">
+            <Link to="/" className="flex gap-3 items-center group">
+              <div className="flex justify-center items-center w-10 h-10 bg-gradient-to-br rounded-lg transition-shadow from-primary-500 to-primary-700 shadow-medium group-hover:shadow-large">
                 <FaFilePdf className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -25,33 +25,33 @@ export const Header: FC = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex items-center gap-6">
+          <nav className="flex gap-6 items-center">
             {/* Task Queue */}
             <Link
               to="/tasks"
-              className="relative text-gray-600 hover:text-primary-600 transition-colors"
+              className="relative text-gray-600 transition-colors hover:text-primary-600"
               title="Task Queue"
             >
               <FaTasks className="w-6 h-6" />
               {activeTasks > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="flex absolute -top-2 -right-2 justify-center items-center w-5 h-5 text-xs font-bold text-white rounded-full bg-primary-500">
                   {activeTasks > 9 ? '9+' : activeTasks}
                 </span>
               )}
             </Link>
 
-            <div className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">
+            <div className="hidden gap-6 items-center md:flex">
+              <a href="#/#features" className="font-medium text-gray-600 transition-colors hover:text-primary-600">
                 Features
               </a>
-              <a href="#about" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">
+              <a href="#about" className="font-medium text-gray-600 transition-colors hover:text-primary-600">
                 About
               </a>
               <a
                 href="https://github.com/arkaikus/pdf-tools"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-gray-600 transition-colors hover:text-gray-900"
               >
                 <FaGithub className="w-6 h-6" />
               </a>
