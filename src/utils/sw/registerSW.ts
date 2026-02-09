@@ -8,14 +8,33 @@ export interface ServiceWorkerUpdateHandler {
 }
 
 /**
+ * Check if running in development mode
+ */
+function isDevelopment(): boolean {
+  const hostname = window.location.hostname;
+  const port = window.location.port;
+  
+  // Development indicators
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    port === '3333' || // Bun dev server default port
+    hostname.startsWith('192.168.') || // Local network
+    hostname.endsWith('.local') // mDNS
+  );
+}
+
+/**
  * Register service worker
  */
 export async function registerServiceWorker(
   handlers: ServiceWorkerUpdateHandler = {}
 ): Promise<ServiceWorkerRegistration | null> {
   // Only register in production and if service workers are supported
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDevelopment()) {
     console.log('[SW] Service worker registration skipped in development');
+    console.log('[SW] Current hostname:', window.location.hostname);
     return null;
   }
 
@@ -123,6 +142,8 @@ export async function getServiceWorkerVersion(): Promise<string | null> {
     return null;
   }
 
+  const controller = navigator.serviceWorker.controller;
+
   return new Promise((resolve) => {
     const messageChannel = new MessageChannel();
     
@@ -130,7 +151,7 @@ export async function getServiceWorkerVersion(): Promise<string | null> {
       resolve(event.data.version || null);
     };
 
-    navigator.serviceWorker.controller.postMessage(
+    controller.postMessage(
       { type: 'GET_VERSION' },
       [messageChannel.port2]
     );
@@ -148,6 +169,8 @@ export async function clearServiceWorkerCaches(): Promise<boolean> {
     return false;
   }
 
+  const controller = navigator.serviceWorker.controller;
+
   return new Promise((resolve) => {
     const messageChannel = new MessageChannel();
     
@@ -155,7 +178,7 @@ export async function clearServiceWorkerCaches(): Promise<boolean> {
       resolve(event.data.success || false);
     };
 
-    navigator.serviceWorker.controller.postMessage(
+    controller.postMessage(
       { type: 'CLEAR_CACHE' },
       [messageChannel.port2]
     );
