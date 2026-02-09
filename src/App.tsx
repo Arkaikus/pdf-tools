@@ -12,6 +12,7 @@ import { MergePdf } from './features/merge-pdf';
 import { OrganizePdf } from './features/organize-pdf';
 import { initializeTheme } from './utils/storage';
 import { registerServiceWorker, skipWaiting } from './utils/sw';
+import { logBasePathInfo } from './utils/helpers/basePath';
 
 function AppContent() {
   const { addToast } = useToast();
@@ -19,6 +20,11 @@ function AppContent() {
   useEffect(() => {
     // Initialize theme
     initializeTheme();
+
+    // Log base path configuration (for debugging)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      logBasePathInfo();
+    }
 
     // Register service worker
     registerServiceWorker({

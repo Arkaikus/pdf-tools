@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot src/index.ts",
-    "build": "bun run setup:worker && bun scripts/build.js",
+    "build": "bun run build:gh-pages",
+    "build:gh-pages": "bun run setup:worker && BASE_PATH=/pdf-tools/ bun scripts/build.js",
+    "build:local": "bun run setup:worker && BASE_PATH=/ bun scripts/build.js",
     "start": "NODE_ENV=production bun src/index.ts",
     "setup:worker": "bash scripts/setup-pdfjs-worker.sh",
     "generate:icons": "bash scripts/generate-icons.sh"

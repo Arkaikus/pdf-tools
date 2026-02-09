@@ -96,8 +96,19 @@ async function handleFetch(request) {
   const pathname = url.pathname;
 
   try {
+    // Normalize pathname for base path comparison
+    // If BASE_PATH is defined (injected during build), check if pathname is within scope
+    const isInScope = typeof BASE_PATH !== 'undefined' 
+      ? pathname.startsWith(BASE_PATH) || pathname === BASE_PATH.replace(/\/$/, '')
+      : true;
+    
+    if (!isInScope) {
+      // Not in our scope, fetch from network
+      return await fetch(request);
+    }
+
     // Strategy 1: Network First for HTML (always get latest)
-    if (pathname.endsWith('.html') || pathname === '/') {
+    if (pathname.endsWith('.html') || pathname === '/' || pathname.endsWith(BASE_PATH?.replace(/\/$/, '') || '')) {
       return await networkFirst(request, CACHES.static);
     }
 

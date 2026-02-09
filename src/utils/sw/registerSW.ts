@@ -26,6 +26,26 @@ function isDevelopment(): boolean {
 }
 
 /**
+ * Get base path from build-info or fallback to detecting from pathname
+ */
+function getBasePath(): string {
+  // Try to get from build-info.json (injected during build)
+  const pathname = window.location.pathname;
+  
+  // Check if we're under a subdirectory (e.g., /pdf-tools/)
+  // The app uses HashRouter, so the base path is before the hash
+  const pathParts = pathname.split('/').filter(Boolean);
+  
+  // If pathname contains pdf-tools, use that as base
+  if (pathParts.length > 0 && pathParts[0] === 'pdf-tools') {
+    return '/pdf-tools/';
+  }
+  
+  // Default to root
+  return '/';
+}
+
+/**
  * Register service worker
  */
 export async function registerServiceWorker(
@@ -44,8 +64,14 @@ export async function registerServiceWorker(
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/',
+    const basePath = getBasePath();
+    const swPath = `${basePath}sw.js`;
+    
+    console.log('[SW] Registering service worker:', swPath);
+    console.log('[SW] Scope:', basePath);
+    
+    const registration = await navigator.serviceWorker.register(swPath, {
+      scope: basePath,
     });
 
     console.log('[SW] Service worker registered successfully');
